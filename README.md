@@ -35,6 +35,6 @@ The tooltips dialog box cannot be moved
 the anchorpoint of the backgroundright panel inside the command panel will always move to the top of the commandpanel.
 
 
-After editing the ui elements, you may also want to edit the graphics. The game reads the graphics on startup and can't be changed afterward. the graphics are stored here: C:\Program Files (x86)\Steam\steamapps\common\AoE2DE\widgetui\textures\ingame\panels edit the png's inside the vic folder. You may want to create a canvas the same size as the background panel you made inside the ui editor.
+After editing the ui elements, you may also want to edit the graphics. The game reads the graphics on startup and can't be changed afterward. the graphics are stored here: C:\Program Files (x86)\Steam\steamapps\common\AoE2DE\widgetui\textures\ingame\panels edit the png's inside the vic folder. I use Affinity to draw how I want the UI to look and then export sections of the total UI. I may explain this more later (I'll provide the file if you want to have a look). You may want to create a canvas the same size as the background panel of your ui element, and then draw your panel design. Then overwrite the correct PNG inside the civ folder.
 
-I'll also provide one of my mods as an example. You can import it into the app and learn a thing or two from it.
+I'll also provide one of my mods as an example (which i wont keep updated here). You can import it into the app and learn a thing or two from it.
