@@ -1,4 +1,4 @@
-# AoE-2-de-UI-editor
+# AoE2DE-UI-editor
 This ui editor lets you import, edit, and export .json files
 
 This is an unfinished project, but it may help someone get going. My app was made to make editing UI elements easier; however, the way the game reads these files is not always clear, so you'll have to do some trial and error. I may or may not continue development. I used ChatGPT 5.2 Thinking to make this. Feel free to edit it and repost it yourself.
