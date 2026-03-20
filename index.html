@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>AoE2DE UI Layout Editor — v179</title>
+<title>AoE2DE UI Layout Editor</title>
 <style>
   :root{
     --ui: 0.85;
@@ -13,6 +13,10 @@
     --handle: calc(16px * var(--ui));
     --boxbw: 2px; /* box stroke width in world space */
     --boxbwSel: 2px; /* selection overlay stroke */
+    --z-workarea: 1;
+    --z-ui: 2000;
+    --z-popups: 3000;
+    --z-debug: 4000;
   }
   html,body{height:100%; overflow:hidden;}
   
@@ -139,14 +143,19 @@
   .note{ opacity:.85; line-height:1.35; padding:0 10px 10px 10px; }
   #treeRoot{ margin-top:10px; }
   .treeRow{
-    display:flex; align-items:center; gap:8px;
-    padding:6px 8px; border-radius:10px;
+    display:flex; align-items:center; gap:4px;
+    padding:0 4px; border-radius:7px; min-height:10px;
     cursor:pointer; user-select:none;
+    line-height:1.0;
   }
   .treeRow:hover{ background:#222; }
   .treeRow.selected{
     background:#3a2f10;
     outline: 2px solid rgba(255,211,74,0.7);
+  }
+  .treeRow.scopeEditing{
+    background: rgba(255,211,74,0.08);
+    outline: 1px dashed rgba(255,211,74,0.55);
   }
 
   .treeRow.hidden{ opacity:.35; }
@@ -166,6 +175,7 @@
   .box.disabled .label{ display:none; }
   .textPreview{
     position:absolute; inset:0;
+    z-index:3;
     pointer-events:none;
     overflow:hidden;
     white-space:nowrap;
@@ -215,10 +225,23 @@
   #world{ position:relative; background:#0f0f0f; }
 
   #virtualFrame{
-    position:absolute; box-sizing:border-box;
-    border: var(--bw) solid rgba(255,255,255,0.22);
+    position:absolute;
+    box-sizing:border-box;
+    border:none;
     pointer-events:none;
-    overflow:hidden;
+    overflow:visible;
+    --vfStroke: rgba(255,255,255,0.22);
+  }
+  #virtualFrame::before{
+    content:"";
+    position:absolute;
+    pointer-events:none;
+    left: calc(var(--bw) * -0.5);
+    top: calc(var(--bw) * -0.5);
+    width: calc(100% + var(--bw));
+    height: calc(100% + var(--bw));
+    box-sizing:border-box;
+    border: var(--bw) solid var(--vfStroke);
   }
     #virtualLabel{
     position:absolute; top: calc(-1.6em); left:0;
@@ -247,8 +270,8 @@
     transform:translateZ(0);
   }
   #virtualFrame{ z-index:2; }
-  .box{ z-index:5; }
-  .label{ z-index:6; }
+  .box{ z-index:6; }
+  .label{ z-index:5; }
 
 
   /* Guides */
@@ -289,6 +312,7 @@
   .box::before{
     content:"";
     position:absolute;
+    z-index:2;
     pointer-events:none;
     left: calc(var(--boxbw) * -0.5);
     top:  calc(var(--boxbw) * -0.5);
@@ -330,8 +354,24 @@
     --strokeColor: rgba(255,255,255,0.85);
     background: rgba(255,255,255,0.06);
   }
+  .box.scopeChildDim{
+    --strokeStyle: dashed;
+    --strokeColor: rgba(255,255,255,0.42);
+    background: rgba(255,255,255,0.03);
+    opacity: 0.72;
+  }
+  .box.scopeChildDim .label,
+  .box.scopeChildDim .textPreview{
+    opacity: 0.55;
+  }
+  .box.scopeEditing{
+    --strokeStyle: dashed;
+    --strokeColor: rgba(255,211,74,0.92);
+    background: rgba(255,211,74,0.05);
+  }
   .label{
     position:absolute; left:0; top: calc(-1.45em);
+    z-index:1;
     background:rgba(0,0,0,0.82); padding:3px 8px;
     pointer-events:none; white-space:nowrap;
     font-size:10px; font-weight:600; line-height:1.15; border-radius:8px;
@@ -339,7 +379,17 @@
     text-shadow:0 1px 2px rgba(0,0,0,0.9);
   }
   .labelsHidden .label{ display:none !important; }
+  .boxOutlinesHidden .box:not(.selected):not(.hovered):not(.childHilite):not(.disabled){
+    background: transparent !important;
+  }
+  .boxOutlinesHidden .box:not(.selected):not(.hovered):not(.childHilite):not(.disabled)::before{
+    border-color: transparent !important;
+  }
+  .boxOutlinesHidden .anchorX{
+    display:none !important;
+  }
   .boxImg{
+    z-index:1;
     position:absolute;
     left:0; top:0;
     width:100%; height:100%;
@@ -566,15 +616,15 @@
   /* --- Anchor grid (toolbar) --- */
 .anchorGridMini{
   display:grid;
-  grid-template-columns: repeat(3, 18px);
-  grid-auto-rows: 18px;
-  gap:4px;
+  grid-template-columns: repeat(3, 9px);
+  grid-auto-rows: 9px;
+  gap:1px;
   margin:0;
 }
 .anchorCellMini{
-  width:18px;
-  height:18px;
-  border-radius:5px;
+  width:9px;
+  height:9px;
+  border-radius:4px;
   background:#1a1a1a;
   border:1px solid rgba(255,255,255,0.16);
   cursor:pointer;
@@ -587,11 +637,11 @@
 .anchorCellMini:hover{ background:#242424; }
 .anchorCellMini.disabled{ opacity:.45; cursor:not-allowed; }
 .anchorCellMini.active{
-  outline:2px solid rgba(255,211,74,0.70);
+  outline:1px solid rgba(255,211,74,0.70);
   background:#221a0a;
 }
 .anchorCellMini .xMark{
-  width:12px; height:12px;
+  width:7px; height:7px;
   position:relative;
   pointer-events:none;
 }
@@ -599,7 +649,7 @@
   content:"";
   position:absolute;
   left:50%; top:50%;
-  width:12px; height:2px;
+  width:8px; height:1.5px;
   background: rgba(255,60,60,0.95);
   border-radius:2px;
 }
@@ -618,7 +668,7 @@
   /* Inline nudge panel (toolbar) */
   .nudgeInline{ align-items:flex-start; gap:10px; }
   .nudgeInline .nudgeWrap{ margin-top:0; padding:0; border:none; background:transparent; }
-  .nudgeInline .nudgeGrid{ gap:4px; }
+  .nudgeInline .nudgeGrid{ gap:3px; }
   .nudgeInline .nudgeBtn{ padding:4px 6px; border-radius:10px; min-width:28px; height:22px; }
   .nudgeInline .nudgeBtn .arrow{ font-size:13px; }
   .nudgeInline #nudgeStep{ width:44px; text-align:center; padding:2px 4px; border-radius:10px; border:none; background:#2a2a2a; color:#eee; }
@@ -716,8 +766,8 @@
   }
   .treeGroupRow{
     margin-left: 10px;
-    margin-top: 6px;
-    padding: 6px 8px;
+    margin-top: 4px;
+    padding: 4px 6px;
     border-radius: 10px;
     border: 1px solid #2f2f2f;
     background: #1f1f1f;
@@ -794,9 +844,57 @@
       inset 0 1px 0 rgba(255,255,255,0.07),
       0 6px 16px rgba(0,0,0,0.22);
   }
-  button.toggled{
+  button.toggled,
+  button.active,
+  button.on{
     background: linear-gradient(180deg, rgba(255,211,74,0.22), rgba(255,211,74,0.08));
     border-color: rgba(255,211,74,0.30);
+  }
+  #advancedModeBtn{
+    background: linear-gradient(180deg, rgba(120,214,120,0.94), rgba(78,176,78,0.94));
+    color:#0f2c0f;
+    border:1px solid rgba(150,245,150,0.38);
+  }
+  #advancedModeBtn:hover{
+    background: linear-gradient(180deg, rgba(134,224,134,0.98), rgba(88,188,88,0.98));
+  }
+  #advancedModeBtn.on,
+  #advancedModeBtn.toggled,
+  #advancedModeBtn.active{
+    background: linear-gradient(180deg, rgba(146,244,146,0.98), rgba(94,204,94,0.98));
+    color:#072107;
+    border-color: rgba(180,255,180,0.52);
+  }
+  #advancedModeBtn.on:hover,
+  #advancedModeBtn.toggled:hover,
+  #advancedModeBtn.active:hover{
+    background: linear-gradient(180deg, rgba(162,252,162,1), rgba(106,214,106,1));
+  }
+
+  button.advancedOnly{
+    background: linear-gradient(180deg, rgba(126,222,126,0.18), rgba(82,184,82,0.10));
+    border-color: rgba(154,244,154,0.26);
+  }
+  button.advancedOnly:hover{
+    background: linear-gradient(180deg, rgba(136,232,136,0.24), rgba(92,194,92,0.14));
+    border-color: rgba(170,252,170,0.34);
+  }
+  button.advancedOnly.on,
+  button.advancedOnly.toggled,
+  button.advancedOnly.active{
+    background: linear-gradient(180deg, rgba(142,238,142,0.28), rgba(96,202,96,0.16));
+    border-color: rgba(182,255,182,0.40);
+    color: var(--ui-text);
+  }
+  button.advancedOnly.on:hover,
+  button.advancedOnly.toggled:hover,
+  button.advancedOnly.active:hover{
+    background: linear-gradient(180deg, rgba(152,246,152,0.34), rgba(106,210,106,0.20));
+    border-color: rgba(194,255,194,0.48);
+  }
+  button.advancedOnly:disabled{
+    background: linear-gradient(180deg, rgba(104,184,104,0.12), rgba(70,130,70,0.08));
+    border-color: rgba(138,220,138,0.18);
   }
 
   input{
@@ -834,13 +932,18 @@
   #splitter:hover{ background: rgba(255,255,255,0.07); }
 
   .treeRow{
-    border-radius: 12px;
-    padding: 7px 10px;
+    border-radius: 8px;
+    padding: 0 4px;
+    min-height: 10px;
   }
   .treeRow:hover{ background: rgba(255,255,255,0.05); }
   .treeRow.selected{
     background: rgba(255,211,74,0.10);
     outline: 2px solid rgba(255,211,74,0.45);
+  }
+  .treeRow.scopeEditing{
+    background: rgba(255,211,74,0.07);
+    outline: 1px dashed rgba(255,211,74,0.38);
   }
 
   .treeGroupRow{
@@ -853,7 +956,7 @@
   #canvasWrap{ background: radial-gradient(900px 600px at 50% 0%, rgba(255,255,255,0.06), transparent 60%), #101317; }
   #world{ background: transparent; }
   #virtualFrame{
-    border: var(--bw) solid rgba(255,255,255,0.18);
+    --vfStroke: rgba(255,255,255,0.18);
     box-shadow: 0 12px 40px rgba(0,0,0,0.55);
     overflow:hidden;
     box-sizing:border-box;
@@ -975,7 +1078,7 @@
 
 
   /* ===== Debug panel (v107) ===== */
-  #dbgDock{ position:fixed; right:10px; top:10px; z-index:9999; display:flex; gap:8px; }
+  #dbgDock{ position:fixed; right:10px; top:86px; z-index:6000000; display:flex; gap:8px; }
   #dbgToggleBtn{
     padding:6px 10px;
     border-radius:10px;
@@ -985,9 +1088,10 @@
     box-shadow:0 8px 22px rgba(0,0,0,.45);
   }
   #dbgPanel{
-    position:fixed; right:10px; top:44px;
+  z-index:6000000;
+    position:fixed; right:10px; top:120px;
     width:min(720px, calc(100vw - 20px));
-    height:min(420px, calc(100vh - 60px));
+    height:min(420px, calc(100vh - 136px));
     z-index:9999;
     display:none;
     border-radius:14px;
@@ -1068,24 +1172,150 @@
   border-radius:10px;
 }
 #toolbar.toolbarBasic #anchorGridMini{
-  padding:4px;
+  padding:3px;
   border:1px solid rgba(255,255,255,0.12);
   border-radius:10px;
   background: rgba(255,255,255,0.03);
+  min-height:34px;
+  box-sizing:border-box;
+  align-items:center;
 }
 #toolbar.toolbarBasic #anchorGridMini.anchorGridMini{
-  width:auto; height:auto;
+  width:auto; height:34px;
+  align-content:center;
 }
 #toolbar.toolbarBasic .miniLabel{ opacity:.85; margin-left:2px; margin-right:2px; }
 /* Disable the previous split toolbar styling if still present */
 .toolbarSplit, .tbBox{ all: unset; }
 
+
+/* v191: item context menu */
+#itemContextMenu{
+  position:fixed;
+  z-index:7000000;
+  min-width:180px;
+  display:none;
+  padding:6px;
+  background:rgba(18,20,24,.98);
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:12px;
+  box-shadow:0 14px 36px rgba(0,0,0,.45);
+}
+#itemContextMenu.open{ display:block; }
+#itemContextMenu button{
+  display:block;
+  width:100%;
+  text-align:left;
+  margin:0;
+  border-radius:9px;
+}
+#itemContextMenu button[disabled]{ opacity:.45; cursor:default; }
+#itemContextMenu .menuSep{
+  height:1px;
+  margin:6px 4px;
+  background:rgba(255,255,255,.10);
+}
+
+
+body.pngs-off .auto-png-preview,
+body.pngs-off .manual-png-preview,
+body.pngs-off .item-png,
+body.pngs-off .png-preview,
+body.pngs-off img[data-item-png="1"],
+body.pngs-off .boxImg {
+  display:none !important;
+}
+
+#pngStatePanel{
+  position:fixed;
+  left:50%;
+  top:96px;
+  transform:translateX(-50%);
+  width:min(860px, calc(100vw - 80px));
+  max-height:min(calc(100vh - 140px), 760px);
+  display:none;
+  z-index:7000001;
+  background:rgba(18,20,24,.98);
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:14px;
+  box-shadow:0 16px 44px rgba(0,0,0,.48);
+  overflow:hidden;
+}
+#pngStatePanel.open{ display:block; }
+#pngStatePanelHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 12px;
+  border-bottom:1px solid rgba(255,255,255,.10);
+  background:rgba(255,255,255,.03);
+  cursor:move;
+  user-select:none;
+}
+#pngStatePanelTitle{ font-weight:700; }
+#pngStatePanelBody{
+  padding:12px;
+  overflow:auto;
+  max-height:calc(min(100vh - 140px, 760px) - 52px);
+  font:12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space:pre-wrap;
+}
+#toolbar,
+#sidebar,
+#dbgPanel,
+#bootstrapBar,
+#bootstrapBackdrop,
+#helpPanel,
+.modal,
+.dialog,
+.panelOverlay{
+  z-index:var(--z-popups);
+}
+#itemContextMenu{ z-index:7000000 !important; }
+#pngStatePanel{ z-index:7000001 !important; }
+#dbgDock,
+#dbgPanel{
+  z-index:6000000;
+}
+
+
+/* v231: strict layering cleanup */
+body{ position:relative; }
+#toolbar{ position:relative; z-index:100000; }
+#app{ position:relative; z-index:1000; }
+#sidebar{ position:relative; z-index:100001; }
+#canvasWrap{ position:relative; z-index:1; }
+#world{ position:relative; z-index:1; }
+#uiOverlayRoot{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:20000000;
+}
+#uiOverlayRoot > #itemContextMenu,
+#uiOverlayRoot > #pngStatePanel{
+  pointer-events:auto;
+}
+#itemContextMenu{ z-index:20000001 !important; }
+#pngStatePanel{ z-index:20000002 !important; }
+#dbgDock,
+#dbgPanel{ z-index:21000000 !important; }
+
+
+#loadReport{display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap;margin-left:8px;padding:4px 8px;border:1px solid var(--line);border-radius:10px;background:#1a1b1f;color:#d7dbe3;font-size:12px}
+#loadReport .lrItem{white-space:nowrap;opacity:.95}
+#loadReport .lrDim{opacity:.72}
+
 </style>
 </head>
 <body>
+<div id="uiOverlayRoot"></div>
 <div id="bootstrapBar" style="position:fixed;left:10px;top:10px;display:none;z-index:2000;pointer-events:auto;background:rgba(20,20,22,.98);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:10px 12px;max-width:520px;color:#eee;font:12px ui-monospace, SFMono-Regular, Menlo, monospace;">
 <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-<div style="font-weight:800;">BOOTSTRAP IMPORT</div>
+<div style="font-weight:800;">BOOTSTRAP IMPORT        <button id="boxesBtn" class="toggle on" title="Toggle blue object outline boxes">Boxes: ON</button>
+        <button id="bootstrapPngBtn" class="toggle on" title="Toggle PNG previews on or off">PNG: ON</button>
+</div>
 <input accept=".json" id="bootstrapFileInput" multiple="" style="max-width:280px" type="file"/>
 <button id="bootstrapTryLoad" style="padding:6px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:#2a2a2a;color:#eee;cursor:pointer;" type="button">Try load into app</button>
 <button id="bootstrapCloseBtn" style="padding:6px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:#2a2a2a;color:#eee;cursor:pointer;" type="button">Close</button>
@@ -1096,24 +1326,31 @@
 <div id="bootstrapLog" style="margin-top:8px;white-space:pre-wrap;max-height:180px;overflow:auto;opacity:.95;">Waiting…</div>
 </div>
 <div id="toolbar" class="toolbarBasic">
-  <button id="importBtn">Import</button>
+  <button id="advancedModeBtn" title="Show or hide advanced features">Advanced: OFF</button>
+  <button id="gameFolderBtn" class="advancedOnly">Load Base Game Files</button>
+  <input id="gameFolderInput" type="file" webkitdirectory directory multiple hidden/>
+  <button id="modFolderBtn" class="advancedOnly">Load Mod</button>
+  <input id="modFolderInput" type="file" webkitdirectory directory multiple hidden/>
+  <button id="exportBtn" class="advancedOnly" disabled>Export Mod</button>
+  <button id="importBtn">Import JSON</button>
   <input accept=".json" hidden id="fileInput" multiple type="file"/>
-  <button id="exportBtn" disabled>Export</button>
-  <button id="exportAllBtn" disabled title="Export all loaded files">Export All</button>
+  <button id="exportAllBtn" class="advancedOnly" disabled title="Export all loaded files">Export All JSON</button>
   <span class="btnLike" style="cursor:default;">
     <span style="opacity:.9">File</span>
     <select id="fileSelect" disabled></select>
   </span>
+  <button id="exportJsonBtn" disabled title="Export the active JSON file">Export JSON</button>
+  <button id="selectionModeBtn" class="toggle advancedOnly" title="Toggle selection behavior">Selection: Simple</button>
   <button id="closeFileBtn" disabled>Close</button>
   <button id="undoBtn" disabled>Undo</button>
   <button id="redoBtn" disabled>Redo</button>
-  <button id="groupBtn" disabled title="Lock selected items together so they behave as one">Group</button>
-
   <span class="sep"></span>
 
   <button id="hideAllBtn" disabled>Hide all</button>
   <button id="showAllBtn" disabled>Show all</button>
   <button id="labelsToggleBtn" class="toggle">Labels: ON</button>
+  <button id="boxesToggleBtn" class="toggle">Boxes: ON</button>
+  <button id="pngBtn" class="toggle">PNG: ON</button>
   <button id="textToggleBtn" class="toggle">Text: ON</button>
   <button id="snapBtn" class="toggle">Snapping: ON</button>
   <button id="guidesBtn" class="toggle">Snaplines: ON</button>
@@ -1122,10 +1359,9 @@
   <button id="bgLoadBtn">Load BG</button>
   <input id="bgInput" type="file" accept="image/*" hidden/>
   <button id="bgToggleBtn" class="toggle">BG: OFF</button>
-  <button id="bgClearBtn">Clear BG</button>
-  <button id="itemPngBtn" disabled>Set PNG</button>
+  <button id="itemPngBtn" disabled style="display:none"></button>
   <input id="itemPngInput" type="file" accept="image/png" hidden/>
-  <button id="clearItemPngBtn" disabled>Clear PNG</button>
+  <button id="clearItemPngBtn" disabled style="display:none"></button>
   <button id="clearSavedDataBtn" title="Remove all editor-local saved data">Clear saved</button>
   <button id="githubBtn" title="Open project on GitHub">GitHub</button>
   <button id="zoomOut" title="Zoom out">−</button>
@@ -1135,19 +1371,20 @@
   <span class="sep"></span>
 
   <div id="anchorGridMini" class="anchorGridMini" title="Anchor"></div>
-  <input id="inspAX" type="number" step="1" title="AX" style="width:72px"/>
-  <input id="inspAY" type="number" step="1" title="AY" style="width:72px"/>
+  <span class="miniLabel" title="Anchor position" style="color:#ff6b6b;font-weight:700;">✕</span>
+  <input id="inspAX" type="number" step="1" title="Anchor X" placeholder="AX" style="width:72px"/>
+  <input id="inspAY" type="number" step="1" title="Anchor Y" placeholder="AY" style="width:72px"/>
+  <span class="miniLabel">Nudge</span><input id="nudgeStep" type="number" value="10" min="1" step="1" style="width:64px"/>
   <button id="nudgeW" title="Nudge left">←</button>
   <button id="nudgeN" title="Nudge up">↑</button>
   <button id="nudgeS" title="Nudge down">↓</button>
   <button id="nudgeE" title="Nudge right">→</button>
-  <input id="nudgeStep" type="number" value="10" min="1" step="1" style="width:64px"/>
-  <span class="miniLabel">W</span><input id="inspW" type="number" step="1" style="width:88px"/>
-  <span class="miniLabel">H</span><input id="inspH" type="number" step="1" style="width:88px"/>
+  <span class="miniLabel">Width</span><input id="inspW" type="number" step="1" style="width:88px"/>
+  <span class="miniLabel">Height</span><input id="inspH" type="number" step="1" style="width:88px"/>
   <button id="aspectBtn" class="toggle">Aspect: OFF</button>
   <button id="subtreeBtn" class="toggle" disabled>Scale children: OFF</button>
-  <button id="cmdPanelToggleBtn" class="toggle" disabled>BGRight: OPEN</button>
-  <span class="miniLabel">Preview</span><input id="inspText" type="text" style="width:220px" title="Editor-only preview text; not exported"/>
+  <button id="cmdPanelToggleBtn" class="toggle" disabled style="display:none">BGRight: OPEN</button>
+  <span class="miniLabel">Text</span><input id="inspText" type="text" style="width:220px" title="Editor-only preview text; not exported"/>
   <select id="inspTextAnchor" title="TextAnchor (exported to JSON)" style="width:130px">
     <option value="">Text align</option>
     <option>TopLeft</option><option>TopCentre</option><option>TopRight</option>
@@ -1162,7 +1399,7 @@
 
   <div id="status" class="statusPill"></div>
   <div id="log" class="logPill"></div>
-  <div id="versionPill" class="statusPill" title="App version">v167</div>
+  <div id="versionPill" class="statusPill" title="App version"></div>
 
   <!-- Hidden placeholders for legacy optional UI (keeps bindings happy) -->
   <select id="alignSelect" style="display:none"></select>
@@ -1175,6 +1412,36 @@
   <div id="inspType" style="display:none"></div>
   <input id="inspX" style="display:none"/>
   <input id="inspY" style="display:none"/>
+  <div id="dimsReadout" style="display:none"></div>
+  <button id="groupBtn" style="display:none"></button>
+  <button id="deleteBtn" style="display:none"></button>
+  <button id="fitChildrenBtn" style="display:none"></button>
+  <button id="fitScreenBtn" style="display:none"></button>
+</div>
+<div id="itemContextMenu" aria-hidden="true">
+  <button type="button" id="ctxCopyBtn">Copy item + children</button>
+  <button type="button" id="ctxPasteIntoBtn">Paste into</button>
+  <button type="button" id="ctxPasteNextToBtn">Paste next to</button>
+  <div class="menuSep"></div>
+  <button type="button" id="ctxGroupBtn">Group</button>
+  <button type="button" id="ctxDeleteBtn">Delete</button>
+  <button type="button" id="ctxFitChildrenBtn">Fit children</button>
+  <button type="button" id="ctxFitScreenBtn">Fit screen</button>
+  <button type="button" id="ctxHideOtherBtn">Hide other</button>
+  <button type="button" id="ctxSetPngBtn">Set PNG</button>
+  <button type="button" id="ctxClearPngBtn">Clear PNG</button>
+  <button type="button" id="ctxListPngsBtn">List/set possible PNGs</button>
+  <button type="button" id="ctxCreateModImageOverrideBtn">Create modded image override</button>
+  <button type="button" id="ctxReloadModImageBtn">Reload image from mod folder</button>
+  <div class="menuSep"></div>
+  <button type="button" id="ctxBgRightToggleBtn" style="display:none;">Toggle BGRight Open/Closed</button>
+</div>
+<div id="pngStatePanel" aria-hidden="true">
+  <div id="pngStatePanelHeader">
+    <div id="pngStatePanelTitle">Possible PNGs</div>
+    <button type="button" id="pngStatePanelCloseBtn">✕</button>
+  </div>
+  <div id="pngStatePanelBody"></div>
 </div>
 <div id="app">
 <div id="sidebar">
@@ -1337,6 +1604,8 @@
 
   DBG.info("Debug logger ready.");
 })();
+
+
 </script>
 
 <script>
@@ -1615,10 +1884,14 @@ console.log("script start");
   const $ = (id)=>{
     const el = document.getElementById(id);
     if (!el){
-      try{ (window.__AOE_DBG__||console).warn("Missing element:", id); }catch{}
+      const silentMissing = new Set(["groupBtn","deleteBtn","fitChildrenBtn","fitScreenBtn"]);
+      if (!silentMissing.has(id)){
+        try{ (window.__AOE_DBG__||console).warn("Missing element:", id); }catch{}
+      }
     }
     return el;
   };
+  const $opt = (id)=> document.getElementById(id);
   const statusEl = $("status");
 
   function updateDimsReadout(){
@@ -1641,6 +1914,17 @@ console.log("script start");
 
   const fileInput = $("fileInput");
   const importBtn = $("importBtn");
+  const gameFolderBtn = $("gameFolderBtn");
+  if (gameFolderBtn) gameFolderBtn.title = 'Select the base game widgetui folder (the folder that contains the UI JSON files and materials.json).';
+  const gameFolderInput = $("gameFolderInput");
+  const modFolderBtn = $("modFolderBtn");
+  const modFolderInput = $("modFolderInput");
+  const createModBtn = $("createModBtn");
+  const lrBaseCount = $("lrBaseCount");
+  const lrModCount = $("lrModCount");
+  const lrUiCount = $("lrUiCount");
+  const lrMaterialsSource = $("lrMaterialsSource");
+  const lrOverrideCount = $("lrOverrideCount");
   // Import is additive by default (keeps current edits + files).
   // Hold Shift (or Ctrl) while clicking Import to REPLACE the workspace with the newly selected files.
   let importReplaceNext = false;
@@ -1654,16 +1938,43 @@ console.log("script start");
   const log = (msg)=>{ try{ if(logEl) logEl.textContent = String(msg); }catch(_){ } };
   window.__log = log;
   const exportBtn = $("exportBtn");
+  const exportJsonBtn = $("exportJsonBtn");
   const fileSelect = $("fileSelect");
   const closeFileBtn = $("closeFileBtn");
+  const selectionModeBtn = $("selectionModeBtn");
+  const advancedModeBtn = $("advancedModeBtn");
   const exportAllBtn = $("exportAllBtn");
   const undoBtn = $("undoBtn");
   const redoBtn = $("redoBtn");
-  const groupBtn = $("groupBtn");
+  const groupBtn = $opt("groupBtn");
+  const deleteBtn = $opt("deleteBtn");
+  const fitChildrenBtn = $opt("fitChildrenBtn");
+  const fitScreenBtn = $opt("fitScreenBtn");
+  const itemContextMenu = $("itemContextMenu");
+  const ctxGroupBtn = $("ctxGroupBtn");
+  const ctxCopyBtn = $("ctxCopyBtn");
+  const ctxPasteIntoBtn = $("ctxPasteIntoBtn");
+  const ctxPasteNextToBtn = $("ctxPasteNextToBtn");
+  const ctxDeleteBtn = $("ctxDeleteBtn");
+  const ctxFitChildrenBtn = $("ctxFitChildrenBtn");
+  const ctxFitScreenBtn = $("ctxFitScreenBtn");
+  const ctxHideOtherBtn = $("ctxHideOtherBtn");
+  const ctxSetPngBtn = $("ctxSetPngBtn");
+  const ctxClearPngBtn = $("ctxClearPngBtn");
+  const ctxListPngsBtn = $("ctxListPngsBtn");
+  const ctxCreateModImageOverrideBtn = $("ctxCreateModImageOverrideBtn");
+  const ctxReloadModImageBtn = $("ctxReloadModImageBtn");
+  const ctxBgRightToggleBtn = $("ctxBgRightToggleBtn");
+  const pngStatePanel = $("pngStatePanel");
+  const pngStatePanelTitle = $("pngStatePanelTitle");
+  const pngStatePanelBody = $("pngStatePanelBody");
+  const pngStatePanelCloseBtn = $("pngStatePanelCloseBtn");
   const hideAllBtn = $("hideAllBtn");
   const showAllBtn = $("showAllBtn");
   const labelsToggleBtn = $("labelsToggleBtn");
   const textToggleBtn = $("textToggleBtn");
+  const boxesToggleBtn = $("boxesToggleBtn");
+  const pngBtn = $("pngBtn");
 
   const zoomSelect = $("zoomSelect");
   const zoomOutBtn = $("zoomOut");
@@ -1678,6 +1989,7 @@ console.log("script start");
   const bgLoadBtn = $("bgLoadBtn");
   const bgToggleBtn = $("bgToggleBtn");
   const bgClearBtn = $("bgClearBtn");
+  if (bgClearBtn) bgClearBtn.style.display = 'none';
   const itemPngBtn = $("itemPngBtn");
   const itemPngInput = $("itemPngInput");
   const clearItemPngBtn = $("clearItemPngBtn");
@@ -1690,6 +2002,695 @@ console.log("script start");
   const textOverrideData = new Map();
   const textAnchorOverrideData = new Map();
   const TEXT_OVERRIDE_STORE_KEY = "aoe2_ui_editor_text_override_map_v1";
+
+  const gameAssetState = {
+    filesByPath: new Map(),
+    objectUrlByPath: new Map(),
+    materialsByName: new Map(),
+    atlasByName: new Map(),
+    globalTextureByName: new Map(),
+    widgetPathCache: new Map(),
+    ready: false,
+    rootLabel: "",
+    materialsSource: "none",
+  };
+
+  function normalizeAssetPath(path){
+    return String(path || "").replace(/\\/g, "/").replace(/^\.\/+/, "").replace(/^\/+/, "").toLowerCase();
+  }
+  function clearGameAssetObjectUrls(){
+    for (const url of gameAssetState.objectUrlByPath.values()){
+      try{ URL.revokeObjectURL(url); }catch(_){}
+    }
+    gameAssetState.objectUrlByPath.clear();
+  }
+  function clearGameAssetState(){
+    clearGameAssetObjectUrls();
+    gameAssetState.filesByPath.clear();
+    gameAssetState.materialsByName.clear();
+    gameAssetState.atlasByName.clear();
+    gameAssetState.globalTextureByName.clear();
+    gameAssetState.widgetPathCache.clear();
+    gameAssetState.ready = false;
+    gameAssetState.rootLabel = "";
+    gameAssetState.materialsSource = "none";
+  }
+  function makeFolderAssetState(){
+    return { filesByPath: new Map(), rawFiles: [], rootLabel: "", ready: false };
+  }
+  let baseFolderState = makeFolderAssetState();
+  let modFolderState = makeFolderAssetState();
+  let modFolderHandle = null;
+
+  function clearFolderAssetState(state){
+    state.filesByPath.clear();
+    state.rawFiles = [];
+    state.rootLabel = "";
+    state.ready = false;
+  }
+  function fillFolderAssetStateFromFileList(state, fileList){
+    clearFolderAssetState(state);
+    const files = Array.from(fileList || []);
+    state.rawFiles = files.slice();
+    const roots = new Set();
+    for (const file of files){
+      const rel = String(file.webkitRelativePath || file.name || "").replace(/\\/g, "/");
+      if (!rel) continue;
+      const parts = rel.split("/").filter(Boolean);
+      if (parts.length > 1) roots.add(parts[0]);
+      const fullKey = normalizeAssetPath(rel);
+      if (fullKey) state.filesByPath.set(fullKey, file);
+      if (parts.length > 1){
+        const trimmedKey = normalizeAssetPath(parts.slice(1).join("/"));
+        if (trimmedKey && !state.filesByPath.has(trimmedKey)) state.filesByPath.set(trimmedKey, file);
+      }
+    }
+    state.rootLabel = Array.from(roots)[0] || "selected folder";
+    state.ready = files.length > 0;
+  }
+  async function rebuildEffectiveGameAssetState(){
+    clearGameAssetState();
+    for (const [k,v] of baseFolderState.filesByPath.entries()) gameAssetState.filesByPath.set(k,v);
+    for (const [k,v] of modFolderState.filesByPath.entries()) gameAssetState.filesByPath.set(k,v);
+    gameAssetState.rootLabel = [baseFolderState.rootLabel, modFolderState.rootLabel].filter(Boolean).join(" + ") || "";
+    let materialsFile = null;
+    let materialsBestScore = -1e9;
+    for (const [path, file] of gameAssetState.filesByPath.entries()){
+      if (!(path.endsWith("/materials.json") || path === "materials.json")) continue;
+      const inMod = modFolderState.filesByPath.get(path) === file;
+      const exact = (path === "materials.json" || path.endsWith("/widgetui/materials.json"));
+      const widgetUiBias = (path.includes('/widgetui/') || path.startsWith('widgetui/')) ? 2 : 0;
+      const depth = path.split('/').length;
+      const score = (inMod ? 100000 : 0) + (exact ? 10000 : 0) + widgetUiBias - depth;
+      if (score > materialsBestScore){
+        materialsBestScore = score;
+        materialsFile = file;
+        gameAssetState.materialsSource = inMod ? "mod" : "base";
+      }
+    }
+    if (!materialsFile){
+      refreshAll();
+      return false;
+    }
+    try{
+      const raw = await materialsFile.text();
+      const data = JSON.parse(raw);
+      for (const wrap of (Array.isArray(data?.Materials) ? data.Materials : [])){
+        const def = wrap?.MaterialDef;
+        const name = String(def?.Name || "").trim().toLowerCase();
+        if (name) gameAssetState.materialsByName.set(name, def);
+      }
+      for (const wrap of (Array.isArray(data?.AtlasTextures) ? data.AtlasTextures : [])){
+        const def = wrap?.AtlasDef;
+        const name = String(def?.Name || "").trim().toLowerCase();
+        if (name) gameAssetState.atlasByName.set(name, def);
+      }
+      for (const wrap of (Array.isArray(data?.GlobalTextures) ? data.GlobalTextures : [])){
+        const def = wrap?.TextureDef;
+        const name = String(def?.Name || "").trim().toLowerCase();
+        if (name) gameAssetState.globalTextureByName.set(name, def);
+      }
+      gameAssetState.ready = true;
+      gameAssetState.widgetPathCache.clear();
+      refreshAll();
+      return true;
+    }catch(err){
+      console.error(err);
+      refreshAll();
+      return false;
+    }
+  }
+  function classifyEffectiveJsonPath(key){
+    const target = normalizeAssetPath(key || '');
+    let inBase = false, inMod = false;
+    for (const [k, file] of baseFolderState.filesByPath.entries()){
+      if (isWidgetUiJsonPath(k, file) && normalizeAssetPath(canonicalWidgetUiJsonPath(k, file)) === target){ inBase = true; break; }
+    }
+    for (const [k, file] of modFolderState.filesByPath.entries()){
+      if (isWidgetUiJsonPath(k, file) && normalizeAssetPath(canonicalWidgetUiJsonPath(k, file)) === target){ inMod = true; break; }
+    }
+    if (inMod && inBase) return 'mod';
+    if (inMod) return 'new';
+    return 'base';
+  }
+  function isWidgetUiJsonPath(key, file=null){
+    const fromKey = normalizeAssetPath(key || '');
+    const fromFile = normalizeAssetPath(file && (file.webkitRelativePath || file.name) || '');
+    const path = fromFile || fromKey;
+    if (!path || !path.endsWith('.json')) return false;
+    if (path.endsWith('/materials.json') || path === 'materials.json') return false;
+    return path.includes('/widgetui/') || path.startsWith('widgetui/');
+  }
+  function getUiDomainFromPath(path){
+    const src = normalizeAssetPath(path || '');
+    if (!src) return '';
+    const m = src.match(/(^|\/)(modes\/[^\/]+)\/widgetui\//);
+    if (m && m[2]) return normalizeAssetPath(m[2]);
+    return '';
+  }
+  function canonicalWidgetUiJsonPath(key, file=null){
+    const fromKey = normalizeAssetPath(key || '');
+    const fromFile = normalizeAssetPath(file && (file.webkitRelativePath || file.name) || '');
+    const src = fromFile || fromKey;
+    if (!src) return fromKey || '';
+    const domain = getUiDomainFromPath(src);
+    const idx = src.indexOf('/widgetui/');
+    if (idx >= 0){
+      const rel = src.slice(idx + 1);
+      return domain ? (domain + '/' + rel) : rel;
+    }
+    if (src.startsWith('widgetui/')) return src;
+    return fromKey || src;
+  }
+  function getUniqueUiJsonPathsFromMap(pathMap){
+    const seen = new Set();
+    const out = [];
+    for (const [key, file] of pathMap.entries()){
+      if (!isWidgetUiJsonPath(key, file)) continue;
+      const canonical = normalizeAssetPath(canonicalWidgetUiJsonPath(key, file));
+      if (!canonical || seen.has(canonical)) continue;
+      seen.add(canonical);
+      out.push(canonical);
+    }
+    out.sort((a,b)=> a.localeCompare(b));
+    return out;
+  }
+  function getEffectiveUiJsonPaths(){
+    return getUniqueUiJsonPathsFromMap(gameAssetState.filesByPath);
+  }
+  function getModUiJsonPaths(){
+    return getUniqueUiJsonPathsFromMap(modFolderState.filesByPath);
+  }
+  function findUiJsonFileByCanonicalPath(canonicalPath, preferredState=null){
+    const target = normalizeAssetPath(canonicalPath || '');
+    if (!target) return null;
+    const seen = new Set();
+    const states = [preferredState, modFolderState, baseFolderState, gameAssetState].filter(Boolean);
+    for (const state of states){
+      for (const [key, file] of state.filesByPath.entries()){
+        if (!file || seen.has(file)) continue;
+        seen.add(file);
+        if (!isWidgetUiJsonPath(key, file)) continue;
+        const canonical = canonicalWidgetUiJsonPath(key, file);
+        if (normalizeAssetPath(canonical) === target) return file;
+      }
+    }
+    return null;
+  }
+  async function loadUiWorkspaceFromPaths(paths, emptyMessage, loadedMessagePrefix, preferredState=null){
+    if (!paths.length){
+      clearWorkspace();
+      statusEl.textContent = emptyMessage;
+      return 0;
+    }
+    const items = [];
+    for (const key of paths){
+      const file = findUiJsonFileByCanonicalPath(key, preferredState);
+      if (!file) continue;
+      try{
+        const text = await file.text();
+        items.push({ name: key, text, effectivePath: key, sourceKind: classifyEffectiveJsonPath(key) });
+      }catch(err){ console.error(err); }
+    }
+    if (!items.length){
+      clearWorkspace();
+      statusEl.textContent = 'Failed to read widgetui JSON files';
+      return 0;
+    }
+    await importManyFromText(items, {replace:true});
+    statusEl.textContent = `${loadedMessagePrefix}${items.length} UI file(s)`;
+    return items.length;
+  }
+  async function loadEffectiveUiWorkspace(){
+    return await loadUiWorkspaceFromPaths(
+      getEffectiveUiJsonPaths(),
+      'No widgetui JSON files found in loaded folders',
+      'Loaded ',
+      gameAssetState
+    );
+  }
+  async function loadModUiWorkspace(){
+    return await loadUiWorkspaceFromPaths(
+      getModUiJsonPaths(),
+      'No widgetui JSON files found in selected mod folder',
+      'Loaded mod workspace: ',
+      modFolderState
+    );
+  }
+  function countOverrides(){
+    let count = 0;
+    for (const [path, file] of modFolderState.filesByPath.entries()){
+      if (baseFolderState.filesByPath.has(path) && baseFolderState.filesByPath.get(path) !== file) count++;
+    }
+    return count;
+  }
+  function updateLoadReport(uiCount){
+    if (lrBaseCount) lrBaseCount.textContent = String(baseFolderState.filesByPath.size || 0);
+    if (lrModCount) lrModCount.textContent = String(modFolderState.filesByPath.size || 0);
+    if (lrUiCount) lrUiCount.textContent = String(uiCount || 0);
+    if (lrMaterialsSource) lrMaterialsSource.textContent = String(gameAssetState.materialsSource || 'none');
+    if (lrOverrideCount) lrOverrideCount.textContent = String(countOverrides());
+  }
+  async function loadBaseFolderFromFileList(fileList){
+    const files = Array.from(fileList || []);
+    if (!files.length){ statusEl.textContent = 'No game folder files selected'; updateLoadReport(0); return; }
+    fillFolderAssetStateFromFileList(baseFolderState, files);
+    const ok = await rebuildEffectiveGameAssetState();
+    if (!ok){ statusEl.textContent = 'materials.json not found in selected folders'; updateLoadReport(0); return; }
+    if (modFolderState.ready){
+      const count = await loadModUiWorkspace();
+      updateLoadReport(count);
+      statusEl.textContent = count
+        ? `Base + mod loaded: ${baseFolderState.rootLabel} + ${modFolderState.rootLabel}`
+        : `Base folder set: ${baseFolderState.rootLabel}`;
+    }else{
+      clearWorkspace();
+      updateLoadReport(0);
+      statusEl.textContent = `Game folder indexed: ${baseFolderState.rootLabel}`;
+    }
+  }
+  async function loadModFolderFromFileList(fileList){
+    const files = Array.from(fileList || []);
+    if (!files.length){ statusEl.textContent = 'No mod folder files selected'; updateLoadReport(0); return; }
+    modFolderHandle = null;
+    fillFolderAssetStateFromFileList(modFolderState, files);
+    const ok = await rebuildEffectiveGameAssetState();
+    if (!ok){ statusEl.textContent = 'materials.json not found in selected folders'; updateLoadReport(0); return; }
+    const count = await loadModUiWorkspace();
+    try{ dbg('Mod folder UI JSON count:', count, getModUiJsonPaths().slice(0, 50)); }catch(_){ }
+    updateLoadReport(count);
+    statusEl.textContent = baseFolderState.ready
+      ? `Base + mod loaded: ${baseFolderState.rootLabel} + ${modFolderState.rootLabel} (${count} UI JSON)`
+      : (count ? `Mod workspace loaded: ${modFolderState.rootLabel} (${count} UI JSON)` : `Mod folder set: ${modFolderState.rootLabel}`);
+  }
+  function getStateMaterialName(stateObj){
+    if (!stateObj || typeof stateObj !== "object") return "";
+    const direct = String(stateObj.Material || "").trim();
+    if (direct) return direct;
+    for (const key of Object.keys(stateObj)){
+      const v = stateObj[key];
+      if (!v || typeof v !== "object") continue;
+      const m = String(v.Material || "").trim();
+      if (m) return m;
+    }
+    return "";
+  }
+  function getWidgetPreviewMaterialName(widget, node){
+    if (!widget || typeof widget !== "object") return "";
+    const sm = widget.StateMaterials;
+    if (!sm || typeof sm !== "object") return "";
+
+    if (node){
+      const overrideStateKey = String(previewStateOverrideById.get(node.id) || "").trim();
+      if (overrideStateKey){
+        const forced = getStateMaterialName(sm[overrideStateKey]);
+        if (forced) return forced;
+      }
+    }
+
+    // CommandPanel uses one shared OPEN/CLOSED position toggle, but BackgroundRight's
+    // preview PNG should default to UserState0 unless the user explicitly forces a state.
+    // BackgroundLeft still follows the per-file open/closed toggle for collapsed/extended art.
+    if (node){
+      const rec = getFileRec(node.fileId);
+      if (rec?.isCommandPanel){
+        const nm = String(widget.Name || "").trim();
+        const ty = String(widget.Type || "").trim();
+        const recPreviewOpen = !!rec.commandPanelPreviewOpen;
+        if (ty === "Base" && nm === "BackgroundRight"){
+          const forced = getStateMaterialName(sm["UserState0"]);
+          if (forced) return forced;
+        }
+        if (ty === "Base" && nm === "BackgroundLeft"){
+          const stateKey = recPreviewOpen ? "UserState1" : "UserState0";
+          const forced = getStateMaterialName(sm[stateKey]);
+          if (forced) return forced;
+        }
+      }
+    }
+
+    const order = ["StateNormal", "UserState0", "StateHover", "StatePressed", "StateDisabled", "UserState1"];
+    for (const key of order){
+      const m = getStateMaterialName(sm[key]);
+      if (m) return m;
+    }
+    for (const key of Object.keys(sm)){
+      const m = getStateMaterialName(sm[key]);
+      if (m) return m;
+    }
+    return "";
+  }
+  function inspectMaterialResolution(materialName, domain=''){
+    const out = {
+      materialName: String(materialName || "").trim(),
+      materialFound: false,
+      materialType: "",
+      textureRef: "",
+      atlasRef: "",
+      matchedAtlasName: "",
+      atlasTextureFound: false,
+      atlasTextureFile: "",
+      globalTextureFound: false,
+      globalTextureFile: "",
+      directMaterialFile: "",
+      fallbackAtlasName: "",
+      fallbackAtlasTextureFound: false,
+      fallbackAtlasTextureFile: "",
+      resolvedPath: "",
+      resolutionRoute: "unresolved",
+      note: ""
+    };
+    const nameKey = out.materialName.toLowerCase();
+    if (!nameKey){
+      out.note = "No material name on this state.";
+      return out;
+    }
+    const mat = gameAssetState.materialsByName.get(nameKey);
+    if (!mat){
+      out.note = "Material name was not found in materials.json.";
+      return out;
+    }
+    out.materialFound = true;
+    out.materialType = String(mat.Type || "").trim();
+    out.textureRef = String(mat.TextureRef || mat.Name || "").trim();
+    out.atlasRef = String(mat.AtlasRef || "").trim();
+    const texKey = out.textureRef.toLowerCase();
+    const atlasKey = out.atlasRef.toLowerCase();
+
+    if (atlasKey){
+      const atlas = gameAssetState.atlasByName.get(atlasKey);
+      out.matchedAtlasName = String(atlas?.Name || out.atlasRef || "").trim();
+      const tex = Array.isArray(atlas?.Textures) ? atlas.Textures.find(t => String(t?.RefName || "").trim().toLowerCase() === texKey) : null;
+      if (tex){
+        out.atlasTextureFound = true;
+        out.atlasTextureFile = String(tex.FileName || "").trim();
+        if (out.atlasTextureFile){
+          out.resolvedPath = normalizeAssetPath(out.atlasTextureFile);
+          out.resolutionRoute = "atlas-ref";
+          return out;
+        }
+      }
+    }
+
+    const globalTex = gameAssetState.globalTextureByName.get(texKey);
+    if (globalTex){
+      out.globalTextureFound = true;
+      out.globalTextureFile = String(globalTex.FileName || "").trim();
+      if (out.globalTextureFile){
+        out.resolvedPath = normalizeAssetPath(out.globalTextureFile);
+        out.resolutionRoute = "global-texture";
+        return out;
+      }
+    }
+
+    out.directMaterialFile = String(mat.FileName || "").trim();
+    if (out.directMaterialFile){
+      out.resolvedPath = normalizeAssetPath(findBestGameAssetPathMatch(out.directMaterialFile, domain) || out.directMaterialFile);
+      out.resolutionRoute = "material-file";
+      return out;
+    }
+
+    for (const atlas of gameAssetState.atlasByName.values()){
+      const tex = Array.isArray(atlas?.Textures) ? atlas.Textures.find(t => String(t?.RefName || "").trim().toLowerCase() === texKey) : null;
+      if (tex){
+        out.fallbackAtlasName = String(atlas?.Name || "").trim();
+        out.fallbackAtlasTextureFound = true;
+        out.fallbackAtlasTextureFile = String(tex.FileName || "").trim();
+        if (out.fallbackAtlasTextureFile){
+          out.resolvedPath = normalizeAssetPath(out.fallbackAtlasTextureFile);
+          out.resolutionRoute = "atlas-fallback";
+          return out;
+        }
+      }
+    }
+
+    if (out.atlasRef && !out.atlasTextureFound){
+      out.note = `Material points to atlas "${out.atlasRef}" but TextureRef "${out.textureRef}" was not found in that atlas.`;
+    } else if (out.textureRef && !out.globalTextureFound && !out.fallbackAtlasTextureFound){
+      out.note = `TextureRef "${out.textureRef}" was not found in global textures or atlas textures.`;
+    } else {
+      out.note = "Material exists, but no concrete file path could be resolved.";
+    }
+    return out;
+  }
+  function resolveMaterialFilePath(materialName, domain=''){
+    return inspectMaterialResolution(materialName, domain).resolvedPath || "";
+  }
+  function getWidgetResolvedAutoPngPath(id){
+    if (!id) return '';
+    if (gameAssetState.widgetPathCache.has(id)) return gameAssetState.widgetPathCache.get(id) || '';
+    const n = idToNode.get(id);
+    const widget = n?.obj;
+    let resolved = '';
+    const fileDomain = getUiDomainFromPath(getFileRec(n?.fileId)?.effectivePath || '');
+    if (gameAssetState.ready && n){
+      const isEmbeddedImageChild = !!(n.synthetic && n.kind === 'embedded_rect' && String(n.name || '') === 'Image' && n.parentId);
+      if (isEmbeddedImageChild){
+        const pn = idToNode.get(n.parentId);
+        const parentWidget = pn?.obj;
+        const parentDomain = getUiDomainFromPath(getFileRec(pn?.fileId)?.effectivePath || '') || fileDomain;
+        if (parentWidget && typeof parentWidget === 'object'){
+          const materialName = getWidgetPreviewMaterialName(parentWidget, pn);
+          resolved = resolveMaterialFilePath(materialName, parentDomain) || '';
+        }
+      }else if (widget && typeof widget === 'object'){
+        const hasEmbeddedImageRect = !!(widget.Image && typeof widget.Image === 'object' &&
+          ('xorigin' in widget.Image) && ('yorigin' in widget.Image) && ('width' in widget.Image) && ('height' in widget.Image) && ('alignment' in widget.Image));
+        if (!hasEmbeddedImageRect){
+          const materialName = getWidgetPreviewMaterialName(widget, n);
+          resolved = resolveMaterialFilePath(materialName, fileDomain) || '';
+        }
+      }
+    }
+    gameAssetState.widgetPathCache.set(id, resolved);
+    return resolved;
+  }
+  function getEffectiveAssetPathCandidates(key, domain=''){
+    const out = [];
+    const norm = normalizeAssetPath(key);
+    const dom = normalizeAssetPath(domain || '');
+    if (!norm) return out;
+    out.push(norm);
+    if (norm.startsWith('textures/')) out.push('widgetui/' + norm);
+    if (norm.startsWith('widgetui/')) out.push(norm.slice('widgetui/'.length));
+    if (dom){
+      if (norm.startsWith('textures/')) out.push(dom + '/widgetui/' + norm);
+      if (norm.startsWith('widgetui/')) out.push(dom + '/' + norm);
+      if (!norm.startsWith('widgetui/') && !norm.startsWith(dom + '/')) out.push(dom + '/' + norm);
+    }
+    return Array.from(new Set(out.filter(Boolean).map(normalizeAssetPath)));
+  }
+  function findBestGameAssetPathMatch(path, domain=''){
+    const target = normalizeAssetPath(path);
+    const dom = normalizeAssetPath(domain || '');
+    if (!target) return '';
+    const candidates = getEffectiveAssetPathCandidates(target, dom);
+    let bestKey = '';
+    let bestScore = -1e9;
+    for (const [key, file] of gameAssetState.filesByPath.entries()){
+      let matched = false;
+      for (const candidate of candidates){
+        if (key === candidate || key.endsWith('/' + candidate)) { matched = true; break; }
+      }
+      if (!matched) continue;
+      const inMod = modFolderState.filesByPath.get(key) === file;
+      const depth = key.split('/').length;
+      const exact = candidates.includes(key);
+      const widgetUiBias = key.includes('/widgetui/') || key.startsWith('widgetui/') ? 2 : 0;
+      const domainBias = dom && (key.startsWith(dom + '/') || key.includes('/' + dom + '/')) ? 50000 : 0;
+      const score = (inMod ? 100000 : 0) + domainBias + (exact ? 10000 : 0) + widgetUiBias - depth;
+      if (score > bestScore || (score === bestScore && key.length < bestKey.length)){
+        bestScore = score;
+        bestKey = key;
+      }
+    }
+    return bestKey;
+  }
+  function getGameAssetFileByPath(path, domain=''){
+    const key = findBestGameAssetPathMatch(path, domain);
+    return key ? (gameAssetState.filesByPath.get(key) || null) : null;
+  }
+  function getGameAssetObjectUrl(path, domain=''){
+    const key = findBestGameAssetPathMatch(path, domain);
+    if (!key) return '';
+    if (gameAssetState.objectUrlByPath.has(key)) return gameAssetState.objectUrlByPath.get(key) || '';
+    const file = gameAssetState.filesByPath.get(key) || null;
+    if (!file) return '';
+    const url = URL.createObjectURL(file);
+    gameAssetState.objectUrlByPath.set(key, url);
+    return url;
+  }
+  function getAssetPathBasename(path){
+    const parts = String(path || '').replace(/\\/g, '/').split('/').filter(Boolean);
+    return parts.length ? parts[parts.length - 1] : '';
+  }
+  async function ensureModFolderHandle(reasonLabel='mod folder access'){
+    if (!modFolderState.ready){
+      showError('Load a mod folder first.');
+      return null;
+    }
+    if (!window.showDirectoryPicker){
+      showError('This browser does not support writable folder access. Use Chrome or Edge.');
+      return null;
+    }
+    if (modFolderHandle) return modFolderHandle;
+    try{
+      statusEl.textContent = `Select the loaded mod folder to enable ${reasonLabel}.`;
+      const picked = await window.showDirectoryPicker({mode:'readwrite'});
+      modFolderHandle = picked;
+      dbgInfo('Mod folder handle attached for workflow actions:', { picked: picked?.name || '', loaded: modFolderState.rootLabel || '' });
+      return modFolderHandle;
+    }catch(err){
+      if (err && err.name === 'AbortError') return null;
+      throw err;
+    }
+  }
+  async function getFileFromDirectoryHandleByRelPath(rootDir, relPath){
+    if (!rootDir) return null;
+    const parts = String(relPath || '').replace(/\\/g, '/').split('/').filter(Boolean);
+    if (!parts.length) return null;
+    const fileName = parts.pop();
+    let dir = rootDir;
+    try{
+      for (const part of parts){
+        dir = await dir.getDirectoryHandle(part, {create:false});
+      }
+      const handle = await dir.getFileHandle(fileName, {create:false});
+      return await handle.getFile();
+    }catch(_){
+      return null;
+    }
+  }
+  async function cloneFileWithRelativePath(file, relPath, rootLabel){
+    if (!file) return null;
+    const normRel = String(relPath || '').replace(/\\/g, '/').replace(/^\/+/, '');
+    const fileName = getAssetPathBasename(normRel) || String(file.name || 'file.bin');
+    const buf = await file.arrayBuffer();
+    const clone = new File([buf], fileName, {
+      type: file.type || 'application/octet-stream',
+      lastModified: Number(file.lastModified) || Date.now()
+    });
+    try{
+      Object.defineProperty(clone, 'webkitRelativePath', {
+        value: [String(rootLabel || 'selected folder').replace(/\\/g, '/').replace(/^\/+|\/+$/g, ''), normRel].filter(Boolean).join('/'),
+        configurable: true
+      });
+    }catch(_){ }
+    return clone;
+  }
+  async function upsertModFolderFile(relPath, file){
+    const normRel = normalizeAssetPath(relPath);
+    if (!normRel || !file) return false;
+    modFolderState.filesByPath.set(normRel, file);
+    const rootLabel = modFolderState.rootLabel || 'selected folder';
+    const fileWithRel = await cloneFileWithRelativePath(file, normRel, rootLabel) || file;
+    const nextRaw = [];
+    let replaced = false;
+    for (const raw of (Array.isArray(modFolderState.rawFiles) ? modFolderState.rawFiles : [])){
+      const rawRel = normalizeAssetPath(String(raw?.webkitRelativePath || raw?.name || '').replace(/\\/g, '/').split('/').slice(1).join('/'));
+      if (rawRel === normRel){
+        if (!replaced){ nextRaw.push(fileWithRel); replaced = true; }
+      } else {
+        nextRaw.push(raw);
+      }
+    }
+    if (!replaced) nextRaw.push(fileWithRel);
+    modFolderState.rawFiles = nextRaw;
+    modFolderState.ready = true;
+    return true;
+  }
+  function getNodeAutoPngContext(id){
+    const n = idToNode.get(id);
+    if (!n) return null;
+    let titleNode = n;
+    if (n.synthetic && n.kind === 'embedded_rect' && String(n.name || '') === 'Image' && n.parentId){
+      const pn = idToNode.get(n.parentId);
+      if (pn) titleNode = pn;
+    }
+    const rec = getFileRec(titleNode?.fileId);
+    const domain = getUiDomainFromPath(rec?.effectivePath || '');
+    const resolvedPath = getWidgetResolvedAutoPngPath(id) || '';
+    const sourceKey = resolvedPath ? (findBestGameAssetPathMatch(resolvedPath, domain) || normalizeAssetPath(resolvedPath)) : '';
+    const sourceFile = resolvedPath ? getGameAssetFileByPath(resolvedPath, domain) : null;
+    return {
+      id,
+      node: n,
+      titleNode,
+      title: String(titleNode?.name || n.name || 'Item'),
+      domain,
+      resolvedPath: normalizeAssetPath(resolvedPath),
+      sourceKey,
+      sourceFile
+    };
+  }
+  async function syncModAssetFromHandle(relPath){
+    const handle = await ensureModFolderHandle('mod image reload');
+    if (!handle) return null;
+    const normRel = normalizeAssetPath(relPath);
+    const file = await getFileFromDirectoryHandleByRelPath(handle, normRel);
+    if (!file) return null;
+    await upsertModFolderFile(normRel, file);
+    return file;
+  }
+  async function createModdedImageOverrideForNode(id){
+    const info = getNodeAutoPngContext(id);
+    if (!info || !info.resolvedPath){
+      showError('This item has no resolved PNG path.');
+      return false;
+    }
+    if (!modFolderState.ready){
+      showError('Load a mod folder first.');
+      return false;
+    }
+    const handle = await ensureModFolderHandle('Create modded image override');
+    if (!handle) return false;
+    if (!info.sourceFile){
+      showError(`Resolved PNG file was not found in the loaded assets.\n\nPath: ${info.sourceKey || info.resolvedPath}`);
+      return false;
+    }
+    const blob = new Blob([await info.sourceFile.arrayBuffer()], {type: info.sourceFile.type || 'image/png'});
+    await writeBlobFileUnder(handle, info.resolvedPath, blob);
+    await syncModAssetFromHandle(info.resolvedPath);
+    await rebuildEffectiveGameAssetState();
+    refreshAll();
+    applySelectionStyling(false);
+    updateInspector();
+    try{ if (pngStatePanel?.classList.contains('open')) showPngStatePanelForNode(id); }catch(_){ }
+    const msg = [
+      'Created modded image override.',
+      `Item: ${info.title}`,
+      `Source image: ${info.sourceKey || info.resolvedPath}`,
+      `Target mod path: ${info.resolvedPath}`
+    ].join('\n');
+    statusEl.textContent = `Created modded image override: ${info.resolvedPath}`;
+    dbgInfo(msg);
+    try{ window.alert(msg); }catch(_){ }
+    return true;
+  }
+  async function reloadImageFromModFolderForNode(id){
+    const info = getNodeAutoPngContext(id);
+    if (!info || !info.resolvedPath){
+      showError('This item has no resolved PNG path.');
+      return false;
+    }
+    if (!modFolderState.ready){
+      showError('Load a mod folder first.');
+      return false;
+    }
+    const file = await syncModAssetFromHandle(info.resolvedPath);
+    if (!file){
+      showError(`Image was not found in the selected mod folder.\n\nExpected path: ${info.resolvedPath}`);
+      return false;
+    }
+    await rebuildEffectiveGameAssetState();
+    refreshAll();
+    applySelectionStyling(false);
+    updateInspector();
+    try{ if (pngStatePanel?.classList.contains('open')) showPngStatePanelForNode(id); }catch(_){ }
+    statusEl.textContent = `Reloaded mod image: ${info.resolvedPath}`;
+    dbgInfo('Reloaded image from mod folder:', { item: info.title, path: info.resolvedPath, size: Number(file.size) || 0 });
+    return true;
+  }
 
   function getNodePointer(id){
     const s = String(id || "");
@@ -1879,8 +2880,11 @@ console.log("script start");
     const el = idToBox.get(id);
     if (!el) return;
     let img = el.querySelector(":scope > .boxImg");
-    const data = itemPngData.get(id) || "";
-    if (!data){
+    const manualData = itemPngData.get(id) || "";
+    const autoPath = manualData ? "" : getWidgetResolvedAutoPngPath(id);
+    const autoUrl = autoPath ? getGameAssetObjectUrl(autoPath, getUiDomainFromPath(getFileRec(idToNode.get(id)?.fileId)?.effectivePath || "")) : "";
+    const src = manualData || autoUrl || "";
+    if (!src){
       if (img){ img.removeAttribute("src"); img.classList.add("hidden"); }
       return;
     }
@@ -1890,7 +2894,9 @@ console.log("script start");
       img.alt = "";
       el.insertBefore(img, el.firstChild);
     }
-    if (img.src !== data) img.src = data;
+    if (img.src !== src) img.src = src;
+    if (autoPath) img.title = autoPath;
+    else img.removeAttribute("title");
     img.classList.remove("hidden");
   }
 
@@ -1961,14 +2967,39 @@ console.log("script start");
     });
   }
 
+  function getItemPngActionTargetId(){
+    if (pendingItemPngTargetId && idToNode.has(pendingItemPngTargetId)) return pendingItemPngTargetId;
+    if (contextMenuTargetId && idToNode.has(contextMenuTargetId)) return contextMenuTargetId;
+    if (primaryId && idToNode.has(primaryId)) return primaryId;
+    return "";
+  }
+  function triggerSetItemPngForTargetId(id){
+    if (!itemPngInput || !id || !idToNode.has(id)) return;
+    pendingItemPngTargetId = id;
+    itemPngInput.click();
+  }
+  function clearItemPngForTargetId(id){
+    if (!id || !idToNode.has(id)) return;
+    itemPngData.delete(id);
+    persistItemPngForId(id, "");
+    updateBoxImage(id);
+    updateItemPngUI();
+    if (typeof refreshPngStatePanel === "function") refreshPngStatePanel();
+  }
   if (itemPngBtn && itemPngInput){
     itemPngBtn.addEventListener("click", ()=>{
-      if (!primaryId || !idToNode.has(primaryId)) return;
-      itemPngInput.click();
+      const targetId = getItemPngActionTargetId();
+      if (!targetId) return;
+      triggerSetItemPngForTargetId(targetId);
     });
     itemPngInput.addEventListener("change", async ()=>{
       const f = itemPngInput.files && itemPngInput.files[0];
-      if (!f || !primaryId || !idToNode.has(primaryId)) return;
+      const targetId = getItemPngActionTargetId();
+      if (!f || !targetId || !idToNode.has(targetId)) {
+        itemPngInput.value = "";
+        pendingItemPngTargetId = null;
+        return;
+      }
       const data = await new Promise((resolve, reject)=>{
         const r = new FileReader();
         r.onload = ()=> resolve(String(r.result || ""));
@@ -1979,20 +3010,20 @@ console.log("script start");
         return "";
       });
       itemPngInput.value = "";
+      pendingItemPngTargetId = null;
       if (!data) return;
-      itemPngData.set(primaryId, data);
-      persistItemPngForId(primaryId, data);
-      updateBoxImage(primaryId);
+      itemPngData.set(targetId, data);
+      persistItemPngForId(targetId, data);
+      updateBoxImage(targetId);
       updateItemPngUI();
+      if (typeof refreshPngStatePanel === "function") refreshPngStatePanel();
     });
   }
   if (clearItemPngBtn){
     clearItemPngBtn.addEventListener("click", ()=>{
-      if (!primaryId) return;
-      itemPngData.delete(primaryId);
-      persistItemPngForId(primaryId, "");
-      updateBoxImage(primaryId);
-      updateItemPngUI();
+      const targetId = getItemPngActionTargetId();
+      if (!targetId) return;
+      clearItemPngForTargetId(targetId);
     });
   }
 
@@ -2077,6 +3108,27 @@ console.log("script start");
       applyBgState();
     });
   }
+  if (gameFolderBtn && gameFolderInput){
+    gameFolderBtn.addEventListener("click", ()=> gameFolderInput.click());
+    gameFolderInput.addEventListener("change", async ()=>{
+      const picked = gameFolderInput.files;
+      await loadBaseFolderFromFileList(picked);
+      gameFolderInput.value = "";
+    });
+  }
+  if (modFolderBtn && modFolderInput){
+    modFolderBtn.addEventListener("click", ()=> modFolderInput.click());
+    modFolderInput.addEventListener("change", async ()=>{
+      const picked = modFolderInput.files;
+      await loadModFolderFromFileList(picked);
+      modFolderInput.value = "";
+    });
+  }
+  if (createModBtn){
+    createModBtn.addEventListener("click", async ()=>{
+      await createNewEmptyModFolder();
+    });
+  }
 
   const snapDistInput = $("snapDist");
   const borderOffsetInput = $("borderOffset");
@@ -2114,6 +3166,40 @@ console.log("script start");
   }
 
   const treeRootEl = $("treeRoot");
+  let selectionMode = "simple"; // "layered" | "simple"
+  let advancedMode = false;
+  function isLayeredSelectionMode(){ return selectionMode === "layered"; }
+  function resolveSelectionTargetId(id){
+    if (!id || !idToNode.has(id)) return null;
+    return isLayeredSelectionMode() ? (mapNodeToCanvasEditableId(id) || id) : id;
+  }
+  function updateSelectionModeUI(){
+    if (!selectionModeBtn) return;
+    const layered = isLayeredSelectionMode();
+    selectionModeBtn.textContent = layered ? "Selection: Layered" : "Selection: Simple";
+    selectionModeBtn.classList.toggle("toggled", layered);
+    selectionModeBtn.title = layered
+      ? "Layered: clicking a child selects its current owner group"
+      : "Simple: clicking selects the clicked item directly";
+  }
+  function updateAdvancedModeUI(){
+    const showAdvanced = !!advancedMode;
+    document.querySelectorAll('.advancedOnly').forEach(el=>{
+      el.style.display = showAdvanced ? '' : 'none';
+    });
+    if (advancedModeBtn){
+      advancedModeBtn.textContent = showAdvanced ? 'Advanced: ON' : 'Advanced: OFF';
+      advancedModeBtn.classList.toggle('on', showAdvanced);
+      advancedModeBtn.classList.toggle('toggled', showAdvanced);
+      advancedModeBtn.title = showAdvanced ? 'Advanced features are visible' : 'Advanced features are hidden';
+    }
+    if (!showAdvanced && selectionMode !== 'simple'){
+      selectionMode = 'simple';
+      updateSelectionModeUI();
+      applySelectionStyling(false);
+      renderTree();
+    }
+  }
   const canvasWrap = $("canvasWrap");
   const worldEl = $("world");
 
@@ -2156,6 +3242,7 @@ function showError(msg){
   window.addEventListener("error", (ev)=> showError(ev?.message || ev));
   window.addEventListener("unhandledrejection", (ev)=> showError(ev?.reason?.message || ev?.reason || "Unhandled promise rejection"));
 
+  updateLoadReport(0);
   log && log("init OK");
   dbg("init:", {
     fileInput: !!fileInput, exportBtn: !!exportBtn, snapBtn: !!snapBtn, guidesBtn: !!guidesBtn,
@@ -2170,6 +3257,72 @@ function showError(msg){
   let fileRec = null; // active file record
   let activeFileId = null;
   let fileCounter = 0;
+
+  function getActiveCanvasScopeId(){
+    if (!fileRec) return null;
+    const scopeId = fileRec.editScopeId;
+    if (scopeId && idToNode.has(scopeId)) return scopeId;
+    return fileRec.rootId || null;
+  }
+  function getCanvasScopeParentId(){
+    const scopeId = getActiveCanvasScopeId();
+    const n = scopeId ? idToNode.get(scopeId) : null;
+    return n?.parentId || null;
+  }
+  function getFileRecForNodeId(id){
+    if (!id || !idToNode.has(id)) return null;
+    const n = idToNode.get(id);
+    if (!n) return null;
+    if (fileRec && n.fileId === fileRec.id) return fileRec;
+    return files.find(rec => rec && rec.id === n.fileId) || null;
+  }
+  function isCanvasEditableTopLevelId(id){
+    if (!id || !idToNode.has(id)) return false;
+    const n = idToNode.get(id);
+    const rec = getFileRecForNodeId(id);
+    if (!n || !rec) return false;
+    const scopeId = (rec.editScopeId && idToNode.has(rec.editScopeId)) ? rec.editScopeId : null;
+    if (!scopeId || scopeId === rec.rootId) return id === rec.rootId;
+    return n.parentId === scopeId;
+  }
+  function mapNodeToCanvasEditableId(id){
+    if (!id || !idToNode.has(id)) return null;
+    const rec = getFileRecForNodeId(id);
+    if (!rec || !rec.rootId || !idToNode.has(rec.rootId)) return null;
+    const scopeId = (rec.editScopeId && idToNode.has(rec.editScopeId)) ? rec.editScopeId : null;
+    if (!scopeId || scopeId === rec.rootId) return rec.rootId;
+    let cur = idToNode.get(id);
+    while (cur){
+      if (cur.id === scopeId) return null;
+      if (cur.parentId === scopeId) return cur.id;
+      cur = cur.parentId ? idToNode.get(cur.parentId) : null;
+    }
+    return null;
+  }
+  function enterCanvasScope(id){
+    if (!id || !idToNode.has(id)) return;
+    ensureActiveFileForNode(id);
+    if (!fileRec) return;
+    fileRec.editScopeId = id;
+    clearSelection();
+    clearHover();
+    refreshAll();
+    applySelectionStyling(false);
+    statusEl.textContent = `Editing children of ${idToNode.get(id)?.name || 'item'}`;
+  }
+  function exitCanvasScope(){
+    if (!fileRec) return;
+    const parentId = getCanvasScopeParentId();
+    if (!parentId) return;
+    fileRec.editScopeId = parentId;
+    clearSelection();
+    clearHover();
+    refreshAll();
+    applySelectionStyling(false);
+    statusEl.textContent = (parentId === fileRec.rootId)
+      ? `Editing top-level items in ${baseNoExt(fileRec.name||'file')}`
+      : `Editing children of ${idToNode.get(parentId)?.name || 'item'}`;
+  }
 
   // ==== Special-case: CommandPanel preview (engine-driven xopen/xclosed) ====
   let commandPanelRootId = null;
@@ -2193,7 +3346,8 @@ function showError(msg){
     try{ localStorage.setItem(LS_CMD_PREVIEW_KEY, isOpen ? "1" : "0"); }catch(_){ }
   }
 
-  let commandPanelPreviewOpen = true; // per-active-file
+  let commandPanelPreviewOpen = true; // per-active-file (default OPEN position; BackgroundRight PNG still defaults to UserState0)
+  let previewStateOverrideById = new Map();
   let undoStack = [];
   let redoStack = [];
 
@@ -2222,7 +3376,8 @@ function showError(msg){
       selectedIds: Array.from(selectedIds),
       primaryId: primaryId,
       groupDefs: deepClone(groupDefs),
-      nextGroupId: nextGroupId
+      nextGroupId: nextGroupId,
+      previewStateOverrides: Array.from(previewStateOverrideById.entries())
     };
   }
 
@@ -2252,6 +3407,8 @@ function showError(msg){
     primaryId = snap.primaryId || null;
     groupDefs = Array.isArray(snap.groupDefs) ? deepClone(snap.groupDefs) : [];
     nextGroupId = Number.isFinite(snap.nextGroupId) ? snap.nextGroupId : 1;
+    previewStateOverrideById = new Map(Array.isArray(snap.previewStateOverrides) ? snap.previewStateOverrides : []);
+    if (gameAssetState?.widgetPathCache) gameAssetState.widgetPathCache.clear();
 
     rebuildModel(true);
     renderTree();
@@ -2262,6 +3419,9 @@ function showError(msg){
     updateCommandPanelUI();
     updateUndoRedoButtons();
     updateGroupButtonUI();
+    updateDuplicateButtonUI();
+    updateDeleteButtonUI();
+    updateFitButtonsUI();
   }
 
   function detectFormat(text){
@@ -2321,6 +3481,7 @@ function showError(msg){
   if (treeModeHierBtn) treeModeHierBtn.addEventListener("click", ()=>{
     treeMode="hier";
     updateTreeModeUI();
+  updateSelectionModeUI();
     renderTree();
   });
   if (treeModeTypeBtn) treeModeTypeBtn.addEventListener("click", ()=>{
@@ -2328,21 +3489,77 @@ function showError(msg){
     updateTreeModeUI();
     renderTree();
   });
+  if (selectionModeBtn) selectionModeBtn.addEventListener("click", ()=>{
+    selectionMode = isLayeredSelectionMode() ? "simple" : "layered";
+    updateSelectionModeUI();
+    applySelectionStyling(false);
+    renderTree();
+    statusEl.textContent = isLayeredSelectionMode() ? "Selection mode: Layered" : "Selection mode: Simple";
+  });
+  if (advancedModeBtn) advancedModeBtn.addEventListener("click", ()=>{
+    advancedMode = !advancedMode;
+    updateAdvancedModeUI();
+    statusEl.textContent = advancedMode ? "Advanced mode: ON" : "Advanced mode: OFF";
+  });
   updateTreeModeUI();
+  updateSelectionModeUI();
+  updateAdvancedModeUI();
 
 if (undoBtn) undoBtn.addEventListener("click", undo);
   if (redoBtn) redoBtn.addEventListener("click", redo);
   if (groupBtn) groupBtn.addEventListener("click", groupButtonAction);
+  if (deleteBtn) deleteBtn.addEventListener("click", deleteCurrentSelection);
+  if (fitChildrenBtn) fitChildrenBtn.addEventListener("click", fitSelectionToChildren);
+  if (fitScreenBtn) fitScreenBtn.addEventListener("click", fitSelectionToScreen);
+  if (ctxCopyBtn) ctxCopyBtn.addEventListener("click", ()=>{ hideItemContextMenu(); copyCurrentSelectionToClipboard(); });
+  if (ctxPasteIntoBtn) ctxPasteIntoBtn.addEventListener("click", ()=>{ const targetId = contextMenuTargetId; hideItemContextMenu(); pasteClipboardIntoTarget(targetId); });
+  if (ctxPasteNextToBtn) ctxPasteNextToBtn.addEventListener("click", ()=>{ const targetId = contextMenuTargetId; hideItemContextMenu(); pasteClipboardNextToTarget(targetId); });
+  if (ctxGroupBtn) ctxGroupBtn.addEventListener("click", ()=>{ hideItemContextMenu(); groupButtonAction(); });
+  if (ctxDeleteBtn) ctxDeleteBtn.addEventListener("click", ()=>{ hideItemContextMenu(); deleteCurrentSelection(); });
+  if (ctxFitChildrenBtn) ctxFitChildrenBtn.addEventListener("click", ()=>{ hideItemContextMenu(); fitSelectionToChildren(); });
+  if (ctxFitScreenBtn) ctxFitScreenBtn.addEventListener("click", ()=>{ hideItemContextMenu(); fitSelectionToScreen(); });
+  if (ctxHideOtherBtn) ctxHideOtherBtn.addEventListener("click", ()=>{
+    const targetId = contextMenuTargetId;
+    hideItemContextMenu();
+    if (targetId && idToNode.has(targetId)) hideOtherOutsideSubtree(targetId);
+  });
+  if (ctxListPngsBtn) ctxListPngsBtn.addEventListener("click", ()=>{
+    const targetId = contextMenuTargetId;
+    hideItemContextMenu();
+    if (targetId && idToNode.has(targetId)) showPngStatePanelForNode(targetId);
+  });
+  if (ctxCreateModImageOverrideBtn) ctxCreateModImageOverrideBtn.addEventListener("click", async ()=>{
+    const targetId = contextMenuTargetId;
+    hideItemContextMenu();
+    if (targetId && idToNode.has(targetId)) await createModdedImageOverrideForNode(targetId);
+  });
+  if (ctxReloadModImageBtn) ctxReloadModImageBtn.addEventListener("click", async ()=>{
+    const targetId = contextMenuTargetId;
+    hideItemContextMenu();
+    if (targetId && idToNode.has(targetId)) await reloadImageFromModFolderForNode(targetId);
+  });
+  if (ctxBgRightToggleBtn) ctxBgRightToggleBtn.addEventListener("click", ()=>{
+    const targetId = contextMenuTargetId;
+    hideItemContextMenu();
+    if (targetId && idToNode.has(targetId) && isCommandPanelControlNode(idToNode.get(targetId))) toggleCommandPanelPreview();
+  });
   window.addEventListener("keydown",(e)=>{
     if (!(e.ctrlKey || e.metaKey)) return;
     const k = String(e.key||"").toLowerCase();
     if (k==="z" && !e.shiftKey){ e.preventDefault(); undo(); }
     else if (k==="y" || (k==="z" && e.shiftKey)){ e.preventDefault(); redo(); }
+    else if ((k==="delete" || k==="backspace") && !e.shiftKey && !e.altKey){
+      const tag = String(e.target?.tagName||"").toUpperCase();
+      const editable = e.target && (e.target.isContentEditable || tag==="INPUT" || tag==="TEXTAREA" || tag==="SELECT");
+      if (!editable){ e.preventDefault(); deleteCurrentSelection(); }
+    }
   });
   hideAllBtn && hideAllBtn.addEventListener("click", ()=>{ setAllHidden(true); });
   showAllBtn && showAllBtn.addEventListener("click", ()=>{ setAllHidden(false); });
   labelsToggleBtn && labelsToggleBtn.addEventListener("click", ()=>{ labelsVisible = !labelsVisible; updateLabelVisibilityUI(); });
   textToggleBtn && textToggleBtn.addEventListener("click", ()=>{ textVisible = !textVisible; updateTextVisibilityUI(); try{ const __dbg = window.__AOE_DBG__; __dbg && __dbg.info && __dbg.info("[Text visibility]", textVisible ? "ON" : "OFF"); }catch{} });
+  boxesToggleBtn && boxesToggleBtn.addEventListener("click", ()=>{ boxOutlinesVisible = !boxOutlinesVisible; updateBoxesVisibilityUI(); });
+  pngBtn && pngBtn.addEventListener("click", ()=>{ pngVisible = !pngVisible; updatePngVisibilityUI(); });
 
 
   // ==== UI toggles ====
@@ -2373,14 +3590,14 @@ if (undoBtn) undoBtn.addEventListener("click", undo);
   function updateSubtreeUI(){
     if (!subtreeBtn) return;
     subtreeBtn.classList.toggle("toggled", subtreeScaleEnabled);
-    subtreeBtn.textContent = subtreeScaleEnabled ? "Scale children: ON" : "Scale children";
+    subtreeBtn.textContent = subtreeScaleEnabled ? "Scale children: ON" : "Scale children: OFF";
   }
 
   function updateCommandPanelUI(){
     // Active file only: show the OPEN/CLOSED preview toggle when the active file is CommandPanel.
     commandPanelRootId = (fileRec && fileRec.isCommandPanel) ? makeId(fileRec.id, "COL") : null;
     commandPanelBgRightId = (fileRec && fileRec.isCommandPanel) ? (fileRec.bgRightId||null) : null;
-    commandPanelPreviewOpen = (fileRec && fileRec.isCommandPanel) ? !!fileRec.commandPanelPreviewOpen : true;
+    commandPanelPreviewOpen = (fileRec && fileRec.isCommandPanel) ? !!fileRec.commandPanelPreviewOpen : false;
 
     if (!cmdPanelToggleBtn) return;
     const active = !!commandPanelRootId;
@@ -2394,18 +3611,14 @@ if (undoBtn) undoBtn.addEventListener("click", undo);
 
   function updateBgRightTreeBadge(){
     if (!commandPanelRootId) return;
-    // Find the BackgroundRight (Base) row and update its warning badge with current state
-    let bgId = commandPanelBgRightId;
-    if (!bgId){
-      for (const [nid, nn] of idToNode.entries()){
-        if (!nn) continue;
-        const nm = String(nn?.obj?.Name || "");
-        const ty = String(nn?.obj?.Type || "");
-        if (nm==="BackgroundRight" && ty==="Base"){ bgId = nid; break; }
-      }
+    // Show the BGRight preview state on the top CommandPanel item row, not on BackgroundRight itself.
+    let ctrlId = null;
+    for (const [nid, nn] of idToNode.entries()){
+      if (!nn) continue;
+      if (isCommandPanelControlNode(nn)){ ctrlId = nid; break; }
     }
-    if (!bgId) return;
-    const row = treeRootEl?.querySelector?.(`.treeRow[data-id="${CSS.escape(bgId)}"]`);
+    if (!ctrlId) return;
+    const row = treeRootEl?.querySelector?.(`.treeRow[data-id="${CSS.escape(ctrlId)}"]`);
     if (!row) return;
     const badge = row.querySelector(".warnBadge");
     if (!badge) return;
@@ -2471,10 +3684,14 @@ if (undoBtn) undoBtn.addEventListener("click", undo);
   let expandedIds = new Set();
   let hiddenIds = new Set(); // ids explicitly hidden in the tree (descendants hidden implicitly)
   let disabledIds = new Set(); // ids explicitly disabled in the tree (drawn red dashed, click-through)
+  let hiddenFolderKeys = new Set(); // folder rows explicitly hidden in hierarchy mode
+  let disabledFolderKeys = new Set(); // folder rows explicitly disabled in hierarchy mode
   let hideAllActive = false;
   let savedVisSnapshot = null; // {hidden:[], disabled:[]}
   let labelsVisible = true;
   let textVisible = true;
+  let boxOutlinesVisible = true;
+  let pngVisible = true;
 
   function updateTextVisibilityUI(){
     try {
@@ -2500,8 +3717,43 @@ if (undoBtn) undoBtn.addEventListener("click", undo);
     }
   }
 
+
+  function updatePngVisibilityUI(){
+    try{
+      document.body.classList.toggle("pngs-off", !pngVisible);
+      if (pngBtn){
+        pngBtn.textContent = pngVisible ? "PNG: ON" : "PNG: OFF";
+        pngBtn.classList.toggle("active", pngVisible);
+      }
+      const bootstrapPngBtn = $("bootstrapPngBtn");
+      if (bootstrapPngBtn){
+        bootstrapPngBtn.textContent = pngVisible ? "PNG: ON" : "PNG: OFF";
+        bootstrapPngBtn.classList.toggle("active", pngVisible);
+      }
+    }catch{}
+  }
+
+  function updateBoxesVisibilityUI(){
+    try {
+      if (worldEl) worldEl.classList.toggle("boxOutlinesHidden", !boxOutlinesVisible);
+      if (boxesToggleBtn){
+        boxesToggleBtn.textContent = boxOutlinesVisible ? "Boxes: ON" : "Boxes: OFF";
+        boxesToggleBtn.classList.toggle("active", boxOutlinesVisible);
+      }
+      const bootstrapBoxesBtn = $("boxesBtn");
+      if (bootstrapBoxesBtn){
+        bootstrapBoxesBtn.textContent = boxOutlinesVisible ? "Boxes: ON" : "Boxes: OFF";
+        bootstrapBoxesBtn.classList.toggle("active", boxOutlinesVisible);
+        bootstrapBoxesBtn.classList.toggle("on", boxOutlinesVisible);
+      }
+    } catch(e) {
+      console.error(e);
+    }
+  }
+
   let selectedIds = new Set();
   let primaryId = null;
+  let pendingItemPngTargetId = null;
   let groupDefs = []; // [{gid,label,ids:[]}] editor-only locked-together groups
   let nextGroupId = 1;
   const idToGroup = new Map();
@@ -2555,6 +3807,374 @@ if (undoBtn) undoBtn.addEventListener("click", undo);
     groupBtn.textContent = gid ? "Ungroup" : "Group";
     groupBtn.classList.toggle("active", !!gid);
   }
+  function canDuplicateNodeId(id){
+    if (!id || !idToNode.has(id)) return false;
+    const n = idToNode.get(id);
+    if (!n || n.synthetic) return false;
+    const ptr = getNodePointer(id);
+    return !!(n.fileId && ptr && ptr !== "COL");
+  }
+  const knownUnsafeDuplicateTypes = new Set(["label", "button"]);
+  const knownUnsafeDuplicateItems = [
+    { name:"AgeBar", type:"ProgressBar", label:"AgeBar" },
+    { name:"PopulationFlash", type:"Base", label:"PopulationFlash" }
+  ];
+  function getNodeNameType(node){
+    return {
+      name: String(node?.obj?.Name || node?.name || "").trim(),
+      type: String(node?.obj?.Type || "").trim()
+    };
+  }
+  function countSameNameInstances(nodeId){
+    const node = idToNode.get(nodeId);
+    if (!node || node.synthetic || !node.fileId) return 0;
+    const { name } = getNodeNameType(node);
+    if (!name) return 0;
+    const key = name.toLowerCase();
+    let count = 0;
+    for (const other of idToNode.values()){
+      if (!other || other.synthetic || other.fileId !== node.fileId) continue;
+      const otherName = String(other?.obj?.Name || other?.name || "").trim().toLowerCase();
+      if (otherName === key) count += 1;
+    }
+    return count;
+  }
+  function getKnownUnsafeDuplicateWarning(nodeId){
+    const node = idToNode.get(nodeId);
+    if (!node || node.synthetic || !node.fileId) return null;
+    const { name, type } = getNodeNameType(node);
+    const typeKey = type.toLowerCase();
+    const sameNameCount = countSameNameInstances(nodeId);
+    if (sameNameCount < 2) return null;
+
+    let unsafe = knownUnsafeDuplicateTypes.has(typeKey);
+    if (!unsafe){
+      const nameKey = name.toLowerCase();
+      unsafe = knownUnsafeDuplicateItems.some(spec => spec.name.toLowerCase()===nameKey && spec.type.toLowerCase()===typeKey);
+    }
+    if (!unsafe) return null;
+
+    return {
+      badgeText: "⚠ duplicate",
+      title: `${name || "Widget"} (${type || "Unknown"}) is known to break or stop working when duplicated. ${sameNameCount} instances with this name exist in this file.`
+    };
+  }
+  function getGenericDuplicateNameWarning(nodeId){
+    const node = idToNode.get(nodeId);
+    if (!node || node.synthetic || !node.fileId) return null;
+    const { name, type } = getNodeNameType(node);
+    const sameNameCount = countSameNameInstances(nodeId);
+    if (sameNameCount < 2) return null;
+    if (getKnownUnsafeDuplicateWarning(nodeId)) return null;
+    return {
+      badgeText: "dup",
+      title: `${name || "Widget"} already exists elsewhere in this file (${sameNameCount} instances). Duplicates may or may not be safe.`
+    };
+  }
+  let copyClipboard = [];
+  function updateDuplicateButtonUI(){
+  }
+  function canCopySelection(){
+    const ids = topmostSelected(selectionList()).filter(canDuplicateNodeId);
+    return ids.length > 0;
+  }
+  function hasClipboardItems(){
+    return Array.isArray(copyClipboard) && copyClipboard.length > 0;
+  }
+  function canPasteIntoNodeId(id){
+    if (!hasClipboardItems()) return false;
+    if (!id || !idToNode.has(id)) return false;
+    const n = idToNode.get(id);
+    if (!n || n.synthetic || !n.fileId) return false;
+    const ptr = getNodePointer(id);
+    return !!ptr;
+  }
+  function canPasteNextToNodeId(id){
+    return hasClipboardItems() && canDuplicateNodeId(id);
+  }
+  function updateDeleteButtonUI(){
+    if (!deleteBtn) return;
+    const ids = topmostSelected(selectionList()).filter(canDuplicateNodeId);
+    deleteBtn.disabled = !(ids.length > 0);
+  }
+  function canFitNodeId(id){
+    if (!id || !idToNode.has(id)) return false;
+    const n = idToNode.get(id);
+    if (!n) return false;
+    if (isMapViewImageNode(n)) return true;
+    if (n.synthetic) return false;
+    const ptr = getNodePointer(id);
+    const hasViewportLikeRect = !!(n.vp || n?.obj?.ViewPort);
+    return !!(n.fileId && ptr && hasViewportLikeRect);
+  }
+  function updateFitButtonsUI(){
+    const ids = topmostSelected(selectionList()).filter(canFitNodeId);
+    if (fitChildrenBtn) fitChildrenBtn.disabled = !(ids.length > 0);
+    if (fitScreenBtn) fitScreenBtn.disabled = !(ids.length > 0);
+  }
+
+
+  let contextMenuTargetId = null;
+  function hideItemContextMenu(){
+    if (!itemContextMenu) return;
+    itemContextMenu.classList.remove("open");
+    itemContextMenu.style.display = "none";
+    itemContextMenu.setAttribute("aria-hidden", "true");
+    contextMenuTargetId = null;
+  }
+  document.addEventListener("mousedown", (e)=>{
+    if (!itemContextMenu || !itemContextMenu.classList.contains("open")) return;
+    if (itemContextMenu.contains(e.target)) return;
+    hideItemContextMenu();
+  }, true);
+  document.addEventListener("scroll", ()=> hideItemContextMenu(), true);
+  window.addEventListener("resize", ()=> hideItemContextMenu());
+  document.addEventListener("keydown", (e)=>{
+    if (e.key === "Escape") {
+      hideItemContextMenu();
+      hidePngStatePanel();
+    }
+  });
+  if (pngStatePanelCloseBtn){
+    pngStatePanelCloseBtn.addEventListener("click", ()=> hidePngStatePanel());
+  }
+
+  function setPreviewStateOverrideForNode(id, stateKey){
+    if (!idToNode.has(id)) return;
+    const k = String(stateKey || '').trim();
+    if (!k) previewStateOverrideById.delete(id);
+    else previewStateOverrideById.set(id, k);
+    if (gameAssetState?.widgetPathCache) gameAssetState.widgetPathCache.clear();
+    refreshAll();
+    applySelectionStyling(false);
+    updateInspector();
+    showPngStatePanelForNode(id);
+  }
+  function resetPreviewStateOverrideForNode(id){
+    if (!id) return;
+    previewStateOverrideById.delete(id);
+    if (gameAssetState?.widgetPathCache) gameAssetState.widgetPathCache.clear();
+    refreshAll();
+    applySelectionStyling(false);
+    updateInspector();
+    showPngStatePanelForNode(id);
+  }
+
+  function getWidgetMaterialStateList(widget, node){
+    const sm = widget?.StateMaterials;
+    if (!sm || typeof sm !== "object") return [];
+    const preferred = ["StateNormal", "StateHover", "StatePressed", "StateDisabled", "UserState0", "UserState1"];
+    const keys = [];
+    for (const k of preferred){ if (Object.prototype.hasOwnProperty.call(sm, k)) keys.push(k); }
+    for (const k of Object.keys(sm)){ if (!keys.includes(k)) keys.push(k); }
+    const activeMaterial = getWidgetPreviewMaterialName(widget, node);
+    const overrideStateKey = String((node && previewStateOverrideById.get(node.id)) || "").trim();
+    const rows = [];
+    for (const key of keys){
+      const materialName = getStateMaterialName(sm[key]);
+      if (!materialName) continue;
+      const resolution = inspectMaterialResolution(materialName);
+      rows.push({
+        stateKey: key,
+        materialName,
+        resolvedPath: resolution.resolvedPath || "",
+        resolution,
+        active: String(materialName).trim().toLowerCase() === String(activeMaterial).trim().toLowerCase(),
+        forced: overrideStateKey && key === overrideStateKey
+      });
+    }
+    return rows;
+  }
+  function getNodePossiblePngStateInfo(id){
+    const n = idToNode.get(id);
+    if (!n) return null;
+    let widget = n.obj;
+    let titleNode = n;
+    if (n.synthetic && n.kind === "embedded_rect" && String(n.name || "") === "Image" && n.parentId){
+      const pn = idToNode.get(n.parentId);
+      if (pn?.obj && typeof pn.obj === "object"){
+        widget = pn.obj;
+        titleNode = pn;
+      }
+    }
+    const title = `${String(titleNode?.name || n.name || "Item")}`;
+    const rows = getWidgetMaterialStateList(widget, titleNode);
+    return { title, rows };
+  }
+  function hidePngStatePanel(){
+    if (!pngStatePanel) return;
+    pngStatePanel.classList.remove("open");
+    pngStatePanel.style.display = "none";
+    pngStatePanel.setAttribute("aria-hidden", "true");
+  }
+  function showPngStatePanelForNode(id){
+    const info = getNodePossiblePngStateInfo(id);
+    if (!pngStatePanel || !info) return;
+    pngStatePanel.dataset.nodeId = id;
+    if (pngStatePanelTitle) pngStatePanelTitle.textContent = `Possible PNGs — ${info.title}`;
+    if (pngStatePanelBody){
+      pngStatePanelBody.innerHTML = "";
+      if (!info.rows.length){
+        const empty = document.createElement("div");
+        empty.textContent = "No material-linked PNG states found for this item.";
+        pngStatePanelBody.appendChild(empty);
+      } else {
+        const controls = document.createElement("div");
+        controls.style.display = "flex";
+        controls.style.gap = "8px";
+        controls.style.marginBottom = "10px";
+
+        const resetBtn = document.createElement("button");
+        resetBtn.type = "button";
+        resetBtn.textContent = "Reset auto";
+        resetBtn.addEventListener("click", ()=> resetPreviewStateOverrideForNode(id));
+        controls.appendChild(resetBtn);
+        pngStatePanelBody.appendChild(controls);
+
+        for (const row of info.rows){
+          const card = document.createElement("div");
+          card.style.border = "1px solid #334155";
+          card.style.borderRadius = "8px";
+          card.style.padding = "8px";
+          card.style.marginBottom = "8px";
+          card.style.background = row.active ? "rgba(56,189,248,.12)" : "rgba(15,23,42,.55)";
+
+          const top = document.createElement("div");
+          top.style.display = "flex";
+          top.style.alignItems = "center";
+          top.style.justifyContent = "space-between";
+          top.style.gap = "8px";
+
+          const title = document.createElement("div");
+          title.innerHTML = `<b>${row.stateKey}</b>${row.active ? " &nbsp;* active" : ""}${row.forced ? " &nbsp;• forced" : ""}`;
+          top.appendChild(title);
+
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = "Show this state";
+          btn.addEventListener("click", ()=> setPreviewStateOverrideForNode(id, row.stateKey));
+          top.appendChild(btn);
+          card.appendChild(top);
+
+          const mat = document.createElement("div");
+          mat.style.marginTop = "6px";
+          mat.textContent = `Material: ${row.materialName}`;
+          card.appendChild(mat);
+
+          const png = document.createElement("div");
+          png.style.marginTop = "4px";
+          png.style.wordBreak = "break-all";
+          png.textContent = `PNG: ${row.resolvedPath || '[not resolved]'}`;
+          card.appendChild(png);
+
+          const route = document.createElement("div");
+          route.style.marginTop = "4px";
+          route.textContent = `Route: ${row.resolution?.resolutionRoute || 'unresolved'}`;
+          card.appendChild(route);
+
+          const type = document.createElement("div");
+          type.style.marginTop = "4px";
+          type.textContent = `Material type: ${row.resolution?.materialType || '[unknown]'}`;
+          card.appendChild(type);
+
+          const texRef = document.createElement("div");
+          texRef.style.marginTop = "4px";
+          texRef.style.wordBreak = "break-all";
+          texRef.textContent = `TextureRef: ${row.resolution?.textureRef || '[none]'}`;
+          card.appendChild(texRef);
+
+          const atlasRef = document.createElement("div");
+          atlasRef.style.marginTop = "4px";
+          atlasRef.style.wordBreak = "break-all";
+          atlasRef.textContent = `AtlasRef: ${row.resolution?.atlasRef || '[none]'}`;
+          card.appendChild(atlasRef);
+
+          const source = document.createElement("div");
+          source.style.marginTop = "4px";
+          source.style.wordBreak = "break-all";
+          const res = row.resolution || {};
+          let sourceText = '';
+          if (res.resolutionRoute === 'atlas-ref') sourceText = `Atlas match: ${res.matchedAtlasName || res.atlasRef || '[unknown atlas]'}`;
+          else if (res.resolutionRoute === 'global-texture') sourceText = 'Matched through GlobalTextures';
+          else if (res.resolutionRoute === 'material-file') sourceText = 'Matched through MaterialDef.FileName';
+          else if (res.resolutionRoute === 'atlas-fallback') sourceText = `Fallback atlas match: ${res.fallbackAtlasName || '[unknown atlas]'}`;
+          else sourceText = res.note || 'No image file could be resolved from the current material chain.';
+          source.textContent = sourceText;
+          card.appendChild(source);
+
+          pngStatePanelBody.appendChild(card);
+        }
+      }
+    }
+    pngStatePanel.style.display = "block";
+    pngStatePanel.classList.add("open");
+    pngStatePanel.setAttribute("aria-hidden", "false");
+  }
+
+  function showItemContextMenu(x, y, id){
+    if (!itemContextMenu || !idToNode.has(id)) return;
+    contextMenuTargetId = id;
+    const copyOk = canCopySelection();
+    const pasteIntoOk = canPasteIntoNodeId(id);
+    const pasteNextToOk = canPasteNextToNodeId(id);
+    const dupOk = canDuplicateNodeId(id);
+    const fitOk = canFitNodeId(id);
+    const groupSelIds = selectionList();
+    const groupActive = !!getSelectionGroupId();
+    const groupOk = !!(groupActive || groupSelIds.length >= 2);
+    if (ctxCopyBtn) ctxCopyBtn.disabled = !copyOk;
+    if (ctxPasteIntoBtn) ctxPasteIntoBtn.disabled = !pasteIntoOk;
+    if (ctxPasteNextToBtn) ctxPasteNextToBtn.disabled = !pasteNextToOk;
+    if (ctxGroupBtn) {
+      ctxGroupBtn.disabled = !groupOk;
+      ctxGroupBtn.textContent = groupActive ? "Ungroup" : "Group";
+    }
+    if (ctxDeleteBtn) ctxDeleteBtn.disabled = !dupOk;
+    if (ctxFitChildrenBtn) ctxFitChildrenBtn.disabled = !fitOk;
+    if (ctxFitScreenBtn) ctxFitScreenBtn.disabled = !fitOk;
+    if (ctxHideOtherBtn) ctxHideOtherBtn.disabled = !idToNode.has(id);
+    if (ctxSetPngBtn) ctxSetPngBtn.disabled = !idToNode.has(id);
+    if (ctxClearPngBtn) ctxClearPngBtn.disabled = !(idToNode.has(id) && itemPngData.has(id));
+    if (ctxListPngsBtn) ctxListPngsBtn.disabled = !idToNode.has(id);
+    const pngInfo = getNodeAutoPngContext(id);
+    const modImageWorkflowOk = !!(idToNode.has(id) && modFolderState.ready && pngInfo && pngInfo.resolvedPath && window.showDirectoryPicker);
+    if (ctxCreateModImageOverrideBtn) ctxCreateModImageOverrideBtn.disabled = !modImageWorkflowOk;
+    if (ctxReloadModImageBtn) ctxReloadModImageBtn.disabled = !modImageWorkflowOk;
+    const n = idToNode.get(id);
+    const showBgRight = !!(n && isCommandPanelControlNode(n));
+    if (ctxBgRightToggleBtn) ctxBgRightToggleBtn.style.display = showBgRight ? "block" : "none";
+
+    itemContextMenu.style.display = "block";
+    itemContextMenu.classList.add("open");
+    itemContextMenu.setAttribute("aria-hidden", "false");
+
+    const vw = window.innerWidth || document.documentElement.clientWidth || 0;
+    const vh = window.innerHeight || document.documentElement.clientHeight || 0;
+    const rect = itemContextMenu.getBoundingClientRect();
+    const pad = 8;
+    const left = Math.max(pad, Math.min(x, vw - rect.width - pad));
+    const top = Math.max(pad, Math.min(y, vh - rect.height - pad));
+    itemContextMenu.style.left = left + "px";
+    itemContextMenu.style.top = top + "px";
+  }
+  function selectForContextMenu(id){
+    if (!idToNode.has(id)) return false;
+    if (!(selectedIds && selectedIds.has(id))){
+      selectOnly(id);
+    } else {
+      primaryId = id;
+      applySelectionStyling(true);
+      updateAlignUI();
+      updateInspector();
+      updateDimsReadout();
+      focusTreeRow(primaryId);
+      updateGroupButtonUI();
+      updateDuplicateButtonUI();
+      updateDeleteButtonUI();
+      updateFitButtonsUI();
+    }
+    return true;
+  }
   function removeIdsFromGroups(ids){
     if (!ids || !ids.length) return;
     const kill = new Set(ids);
@@ -2581,6 +4201,7 @@ if (undoBtn) undoBtn.addEventListener("click", undo);
     applySelectionStyling(false);
     updateInspector();
     updateGroupButtonUI();
+    updateDeleteButtonUI();
     pushUndo(before);
     statusEl.textContent = `Grouped ${ids.length} items`;
   }
@@ -2630,6 +4251,69 @@ const fileById = ()=>{ const m=new Map(); for (const r of files) m.set(r.id,r); 
   }
 
 
+  function getFolderKeyPathParts(folderKey){
+    return String(folderKey||'').replace(/^FOLDER::/, '').split('/').filter(Boolean);
+  }
+  function getFolderAncestorKeysForNode(id){
+    const n = idToNode.get(id);
+    const rec = n ? getFileRec(n.fileId) : null;
+    const rawPath = String(rec?.effectivePath || rec?.name || '').replace(/^\[.*?\]\s*/, '');
+    const norm = normalizeAssetPath(rawPath || '');
+    const parts = norm ? norm.split('/').filter(Boolean) : [];
+    const folderParts = parts.slice(0, -1);
+    const out = [];
+    let running = '';
+    for (const part of folderParts){
+      running = running ? (running + '/' + part) : part;
+      out.push(`FOLDER::${running}`);
+    }
+    return out;
+  }
+  function hasHiddenFolderAncestorForNode(id){
+    for (const fk of getFolderAncestorKeysForNode(id)) if (hiddenFolderKeys.has(fk)) return true;
+    return false;
+  }
+  function hasDisabledFolderAncestorForNode(id){
+    for (const fk of getFolderAncestorKeysForNode(id)) if (disabledFolderKeys.has(fk)) return true;
+    return false;
+  }
+  function getFolderAncestorKeys(folderKey){
+    const parts = getFolderKeyPathParts(folderKey);
+    const out = [];
+    let running = '';
+    for (let i = 0; i < Math.max(0, parts.length - 1); i++){
+      running = running ? (running + '/' + parts[i]) : parts[i];
+      out.push(`FOLDER::${running}`);
+    }
+    return out;
+  }
+  function hasHiddenFolderAncestor(folderKey){
+    for (const fk of getFolderAncestorKeys(folderKey)) if (hiddenFolderKeys.has(fk)) return true;
+    return false;
+  }
+  function hasDisabledFolderAncestor(folderKey){
+    for (const fk of getFolderAncestorKeys(folderKey)) if (disabledFolderKeys.has(fk)) return true;
+    return false;
+  }
+  function getFolderVisState(folderKey){
+    if (hiddenFolderKeys.has(folderKey)) return 'hidden';
+    if (disabledFolderKeys.has(folderKey)) return 'disabled';
+    return 'visible';
+  }
+  function cycleFolderVisState(folderKey){
+    const st = getFolderVisState(folderKey);
+    if (st === 'visible'){
+      hiddenFolderKeys.add(folderKey);
+      disabledFolderKeys.delete(folderKey);
+    }else if (st === 'hidden'){
+      hiddenFolderKeys.delete(folderKey);
+      disabledFolderKeys.add(folderKey);
+    }else{
+      hiddenFolderKeys.delete(folderKey);
+      disabledFolderKeys.delete(folderKey);
+    }
+  }
+
   // ==== Visibility (tree checkbox) ====
   function hasDisabledAncestor(id){
     let cur = idToNode.get(id);
@@ -2645,6 +4329,7 @@ const fileById = ()=>{ const m=new Map(); for (const r of files) m.set(r.id,r); 
     if (!id) return false;
     if (isNodeHiddenEffective(id)) return false; // hidden wins
     if (disabledIds.has(id)) return true;
+    if (hasDisabledFolderAncestorForNode(id)) return true;
     return hasDisabledAncestor(id);
   }
 
@@ -2685,8 +4370,9 @@ const fileById = ()=>{ const m=new Map(); for (const r of files) m.set(r.id,r); 
     return false;
   }
   function isNodeHiddenEffective(id){
-    // hidden if itself hidden OR any ancestor hidden
+    // hidden if itself hidden OR any ancestor hidden OR any containing folder hidden
     if (hiddenIds.has(id)) return true;
+    if (hasHiddenFolderAncestorForNode(id)) return true;
     let cur = idToNode.get(id);
     while(cur && cur.parentId){
       if (hiddenIds.has(cur.parentId)) return true;
@@ -2731,7 +4417,7 @@ const fileById = ()=>{ const m=new Map(); for (const r of files) m.set(r.id,r); 
     const rec = getFileRec(fileId);
     const xo = Number(col.xopen)||0;
     const xc = Number(col.xclosed)||0;
-    const open = rec ? !!rec.commandPanelPreviewOpen : true;
+    const open = rec ? !!rec.commandPanelPreviewOpen : false;
     return open ? xo : xc;
   }
     // CommandPanel helper: identify BackgroundRight (Base) (used for xopen/xclosed behavior only).
@@ -2745,13 +4431,54 @@ const fileById = ()=>{ const m=new Map(); for (const r of files) m.set(r.id,r); 
     return nm==="CommandPanel";
   }
 
-  // CommandPanel UX: only BackgroundRight acts as the OPEN/CLOSED toggle control.
-  // We keep this tiny special-case because it is the user-facing switch for xopen/xclosed preview.
+  // CommandPanel UX: expose the OPEN/CLOSED toggle on the visible top CommandPanel row,
+  // not on BackgroundRight itself. Depending on how this file line is built, that visible top row
+  // can be either the file root node itself or the first visible child under it.
   function isCommandPanelControlNode(n){
-    const label = String(n?.name || "");
-    return label === "BackgroundRight (Base)" || label === "BackgroundRight" || label.startsWith("BackgroundRight (");
+    if (!n) return false;
+    const rec = files.find(f => f && f.id === n.fileId);
+    if (!rec || !rec.isCommandPanel) return false;
+    if (!rec.rootId) return false;
+    const label = String(n?.name || "").toLowerCase();
+    if (label !== "commandpanel") return false;
+    return (n.id === rec.rootId) || (n.parentId === rec.rootId);
   }
 
+  function nodeOwnZPlane(n){
+    if (!n || !n.obj || typeof n.obj !== "object") return null;
+    const v = Number(n.obj.ZPlane);
+    return Number.isFinite(v) ? v : null;
+  }
+  function nodeOwnZPlaneLocalOffset(n){
+    if (!n || !n.obj || typeof n.obj !== "object") return 0;
+    const v = Number(n.obj.ZPlaneLocalOffset);
+    return Number.isFinite(v) ? v : 0;
+  }
+  function nodeEffectiveZPlane(id){
+    const n = idToNode.get(id);
+    if (!n) return 0;
+    const own = nodeOwnZPlane(n);
+    const local = nodeOwnZPlaneLocalOffset(n);
+    if (own != null) return own + local;
+    if (n.parentId) return nodeEffectiveZPlane(n.parentId) + local;
+    const rootBase = Number(n?.obj?.ZPlane);
+    return (Number.isFinite(rootBase) ? rootBase : 0) + local;
+  }
+  function nodeDrawSeq(id){
+    const n = idToNode.get(id);
+    const v = Number(n?.drawSeq);
+    return Number.isFinite(v) ? v : 0;
+  }
+  function nodeRenderZIndex(id){
+    const zPlane = nodeEffectiveZPlane(id);
+    const seq = Math.max(0, Math.min(9999, nodeDrawSeq(id)));
+    const zBase = (zPlane + 1000) * 10000;
+    // Draw order should come from JSON layering only:
+    // effective ZPlane / ZPlaneLocalOffset, then JSON traversal order.
+    // Do NOT mix in on-screen Y/height bias, because that lets large backgrounds
+    // incorrectly jump above later sibling/child widgets.
+    return 1000 + zBase + seq;
+  }
 
   function nodeAlignment(n){
 
@@ -3161,6 +4888,7 @@ function baseNoExt(name){
   }
 
   // ==== Build model from JSON ====
+  let drawSeqCounter = 0;
   function buildWidgetRecursive(widget, parentId, pointer, fileId){
     const wType = (widget.Type||"").toLowerCase();
     const hasVP = !!widget.ViewPort;
@@ -3192,6 +4920,7 @@ function baseNoExt(name){
         vp: (layoutType==="viewport") ? vp : null,
         anchor: (layoutType==="anchor") ? anchor : null,
         obj: widget,
+        drawSeq: ++drawSeqCounter,
       });
     }
 
@@ -3211,6 +4940,7 @@ function baseNoExt(name){
           obj: widget.Image,       // edits persist into export
           synthetic: true,
           kind: "mapview_image",
+          drawSeq: ++drawSeqCounter,
         });
       }
     }
@@ -3236,6 +4966,7 @@ function baseNoExt(name){
           obj: v,
           synthetic: true,
           kind: "embedded_rect",
+          drawSeq: ++drawSeqCounter,
         });
       }
     }
@@ -3269,39 +5000,53 @@ const nextParent = thisId || parentId;
     el.addEventListener("mousedown",(e)=>{
       if (e.button!==0) return;
       if (isNodeHiddenEffective(id) || isNodeDisabledEffective(id)) return;
+      const targetId = resolveSelectionTargetId(id) || id;
+      if (!idToNode.has(targetId)) return;
       const multi = (e.ctrlKey || e.metaKey);
       if (multi){
-        // Prevent marquee logic from also running.
         e.stopPropagation();
-        // Ctrl/Cmd toggles selection (no drag)
-        toggleSelect(id);
+        toggleSelect(targetId);
         syncOverlay(false);
         updateInspector();
         return;
       }
-      const wasSelected = selectedIds && selectedIds.has(id);
+      const wasSelected = selectedIds && selectedIds.has(targetId);
       if (!wasSelected){
-        // Defer selection until mouseup; prevents "click+hold" selecting immediately
-        // Also allow starting a marquee drag even if the cursor started on top of an unselected item.
-        // (Canvas handler will detect drag threshold and switch to marquee selection.)
-        pendingClickSelect = { id, sx: e.clientX, sy: e.clientY, moved:false };
+        pendingClickSelect = { id: targetId, sx: e.clientX, sy: e.clientY, moved:false };
         return;
       }
-      // Already-selected item: allow drag-move
-      // Stop propagation so the canvas doesn't interpret this as a marquee start.
       e.stopPropagation();
-      // IMPORTANT: do NOT collapse multi-selection here.
-      // If multiple items are selected and the user clicks one of them to drag,
-      // keep the whole selection and only change the primary (yellow) item.
-      if (selectedIds && selectedIds.has(id)){
-        primaryId = id;
+      if (selectedIds && selectedIds.has(targetId)){
+        primaryId = targetId;
         applySelectionStyling(true);
         updateAlignUI();
         updateInspector();
         updateDimsReadout();
-          focusTreeRow(primaryId);
+        focusTreeRow(primaryId);
       }
       beginMoveDrag(e);
+    });
+
+    el.addEventListener("click", (e)=>{
+      if (e.button!==0) return;
+      if (shouldSuppressSelectionClick()){ e.preventDefault(); e.stopPropagation(); return; }
+      if (isNodeHiddenEffective(id) || isNodeDisabledEffective(id)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.ctrlKey || e.metaKey) return;
+      const targetId = resolveSelectionTargetId(id) || id;
+      if (!idToNode.has(targetId)) return;
+      selectOnly(targetId);
+    });
+
+    el.addEventListener("contextmenu", (e)=>{
+      e.preventDefault();
+      e.stopPropagation();
+      if (isNodeHiddenEffective(id) || isNodeDisabledEffective(id)) return;
+      const targetId = resolveSelectionTargetId(id) || id;
+      if (!idToNode.has(targetId)) return;
+      if (!selectForContextMenu(targetId)) return;
+      showItemContextMenu(e.clientX, e.clientY, targetId);
     });
 
     idToBox.set(id, el);
@@ -3339,7 +5084,7 @@ const nextParent = thisId || parentId;
           rec.commandPanelPreviewOpen = loadCmdPreviewForName(rec.name||"");
         }
       } else {
-        rec.commandPanelPreviewOpen = true;
+        rec.commandPanelPreviewOpen = false;
       }
 
       idToNode.set(rootId,{
@@ -3349,7 +5094,8 @@ const nextParent = thisId || parentId;
         layoutType: "viewport",
         vp: col.ViewPort,
         anchor: null,
-        obj: col
+        obj: col,
+        drawSeq: ++drawSeqCounter
       });
 
       // default expand roots on fresh load
@@ -3403,11 +5149,17 @@ const nextParent = thisId || parentId;
     if (showAllBtn) showAllBtn.disabled = (!hideAllActive) || (files.length===0);
     if (labelsToggleBtn) labelsToggleBtn.disabled = (files.length===0);
     updateLabelVisibilityUI();
-  updateTextVisibilityUI();
+    updateTextVisibilityUI();
+    updateBoxesVisibilityUI();
+    updatePngVisibilityUI();
     updateItemPngUI();
     updateGroupButtonUI();
     undoBtn.disabled = (undoStack.length===0);
     redoBtn.disabled = (redoStack.length===0);
+    updateDuplicateButtonUI();
+    updateDeleteButtonUI();
+    updateFitButtonsUI();
+    updateFitButtonsUI();
     snapBtn.disabled = false;
     if (guidesBtn) guidesBtn.disabled = false;
     aspectBtn.disabled = false;
@@ -3438,24 +5190,36 @@ const nextParent = thisId || parentId;
   }
   
   function snapshotVis(){
-    return { hidden: Array.from(hiddenIds), disabled: Array.from(disabledIds) };
+    return {
+      hidden: Array.from(hiddenIds),
+      disabled: Array.from(disabledIds),
+      hiddenFolders: Array.from(hiddenFolderKeys),
+      disabledFolders: Array.from(disabledFolderKeys)
+    };
   }
   function restoreVis(snap){
     hiddenIds.clear(); disabledIds.clear();
+    hiddenFolderKeys.clear(); disabledFolderKeys.clear();
     (snap.hidden||[]).forEach(id=>hiddenIds.add(id));
     (snap.disabled||[]).forEach(id=>disabledIds.add(id));
+    (snap.hiddenFolders||[]).forEach(id=>hiddenFolderKeys.add(id));
+    (snap.disabledFolders||[]).forEach(id=>disabledFolderKeys.add(id));
     persistVisibilityStatesForCurrentNodes();
   }
   function setAllHidden(on){
     if (on){
       savedVisSnapshot = snapshotVis();
       hiddenIds.clear();
+      hiddenFolderKeys.clear();
+      disabledFolderKeys.clear();
       for (const id of idToNode.keys()) hiddenIds.add(id);
       selectedIds.clear(); primaryId = null;
       hideAllActive = true;
     }else{
       hiddenIds.clear();
       disabledIds.clear();
+      hiddenFolderKeys.clear();
+      disabledFolderKeys.clear();
       hideAllActive = false;
       savedVisSnapshot = null;
     }
@@ -3465,6 +5229,33 @@ const nextParent = thisId || parentId;
     // In this build the main refresh entry-point is refreshAll() (boxes + anchors + world size).
     // Older code used renderAll(); keep this robust.
     persistVisibilityStatesForCurrentNodes();
+    if (typeof refreshAll === 'function') refreshAll();
+    if (typeof renderTree === 'function') renderTree();
+    if (typeof syncOverlay === 'function') syncOverlay(false);
+  }
+
+  function hideOtherOutsideSubtree(rootId){
+    if (!rootId || !idToNode.has(rootId)) return;
+    const keep = new Set(getSubtreeIds(rootId));
+    let cur = rootId;
+    while (cur && idToNode.has(cur)){
+      keep.add(cur);
+      const n = idToNode.get(cur);
+      cur = n ? n.parentId : null;
+    }
+    hiddenIds.clear();
+    disabledIds.clear();
+    hiddenFolderKeys.clear();
+    disabledFolderKeys.clear();
+    for (const id of idToNode.keys()){
+      if (!keep.has(id)) hiddenIds.add(id);
+    }
+    hideAllActive = false;
+    savedVisSnapshot = null;
+    if (hideAllBtn) hideAllBtn.disabled = (files.length===0);
+    if (showAllBtn) showAllBtn.disabled = false;
+    persistVisibilityStatesForCurrentNodes();
+    if (primaryId && (isNodeHiddenEffective(primaryId) || isNodeDisabledEffective(primaryId))) clearSelection();
     if (typeof refreshAll === 'function') refreshAll();
     if (typeof renderTree === 'function') renderTree();
     if (typeof syncOverlay === 'function') syncOverlay(false);
@@ -3527,69 +5318,50 @@ function renderTreeNode(id){
       badge.className = "warnBadge";
       const which = commandPanelPreviewOpen ? "xopen" : "xclosed";
       const st = commandPanelPreviewOpen ? "OPEN" : "CLOSED";
-      badge.textContent = `⚠ BGRight uses ${which} (${st}) • RMB toggles`;
+      badge.textContent = `⚠ Uses BGRight ${which} (${st}) • RMB toggles`;
       row.classList.toggle("bgRightClosed", !commandPanelPreviewOpen);
       row.appendChild(badge);
     }
 
-    row.addEventListener("click",(e)=>{
-      e.stopPropagation();
-      if (isNodeHiddenEffective(id) || isNodeDisabledEffective(id)) return;
-      const isRange = !!e.shiftKey;
-      const isToggle = !!(e.ctrlKey || e.metaKey);
-
-      // Shift+click: add clicked item + everything in between (in current tree row order)
-      if (isRange){
-        const rows = Array.from(treeRootEl.querySelectorAll('.treeRow'));
-        const aId = lastTreeClickId;
-        const aIdx = aId ? rows.findIndex(r=>r.dataset.id===aId) : -1;
-        const bIdx = rows.findIndex(r=>r.dataset.id===id);
-        if (aIdx !== -1 && bIdx !== -1){
-          const lo = Math.min(aIdx, bIdx);
-          const hi = Math.max(aIdx, bIdx);
-          for (let i=lo;i<=hi;i++){
-            const rid = rows[i]?.dataset?.id;
-            if (!rid) continue;
-            if (!idToNode.has(rid)) continue;
-            if (isNodeHiddenEffective(rid) || isNodeDisabledEffective(rid)) continue;
-            ensureActiveFileForNode(rid);
-            for (const gid of expandIdsWithGroups([rid])) selectedIds.add(gid);
-          }
-          primaryId = id;
-        } else {
-          // Fallback: just add this one
-          ensureActiveFileForNode(id);
-          selectedIds.add(id);
-          primaryId = id;
-        }
-        if (primaryId){
-          applySelectionStyling(true);
-          updateAlignUI();
-          updateInspector();
-          updateDimsReadout();
-        }
-        lastTreeClickId = id;
-        return;
+    const unsafeDupWarn = getKnownUnsafeDuplicateWarning(id);
+    if (unsafeDupWarn){
+      const badge = document.createElement("div");
+      badge.className = "warnBadge";
+      badge.textContent = unsafeDupWarn.badgeText;
+      badge.title = unsafeDupWarn.title;
+      row.appendChild(badge);
+    } else {
+      const genericDupWarn = getGenericDuplicateNameWarning(id);
+      if (genericDupWarn){
+        const badge = document.createElement("div");
+        badge.className = "warnBadge";
+        badge.textContent = genericDupWarn.badgeText;
+        badge.title = genericDupWarn.title;
+        row.appendChild(badge);
       }
+    }
 
-      if (isToggle) toggleSelect(id);
-      else selectOnly(id);
-      lastTreeClickId = id;
+    row.addEventListener("click",(e)=>{
+      if (shouldSuppressSelectionClick()){ e.preventDefault(); e.stopPropagation(); return; }
+      e.stopPropagation();
+      const targetId = resolveSelectionTargetId(id) || id;
+      if (!idToNode.has(targetId)) return;
+      selectOnly(targetId);
+    });
+
+    row.addEventListener("dblclick",(e)=>{
+      e.preventDefault();
+      e.stopPropagation();
     });
 
     row.addEventListener("contextmenu",(e)=>{
-      if (!isCommandPanelControlNode(n)) return;
       e.preventDefault();
       e.stopPropagation();
-      toggleCommandPanelPreview();
-    });
-
-    row.addEventListener("mouseenter", ()=>{
-      setHoverId(id, true);
-    });
-
-    row.addEventListener("mouseleave", ()=>{
-      clearHover();
+      if (isNodeHiddenEffective(id) || isNodeDisabledEffective(id)) return;
+      const targetId = resolveSelectionTargetId(id) || id;
+      if (!idToNode.has(targetId)) return;
+      if (!selectForContextMenu(targetId)) return;
+      showItemContextMenu(e.clientX, e.clientY, targetId);
     });
 
     wrapper.appendChild(row);
@@ -3610,7 +5382,94 @@ function renderTreeNode(id){
     return wrapper;
   }
   
-function renderTree(){
+function buildLoadedFileFolderTree(){
+    const root = { folders:new Map(), files:[] };
+    for (const rec of files){
+      const rawPath = String(rec?.effectivePath || rec?.name || '').replace(/^\[.*?\]\s*/, '');
+      const norm = normalizeAssetPath(rawPath || '');
+      const parts = norm ? norm.split('/').filter(Boolean) : [];
+      const folderParts = parts.slice(0, -1);
+      let cur = root;
+      let running = '';
+      for (const part of folderParts){
+        running = running ? (running + '/' + part) : part;
+        if (!cur.folders.has(part)) cur.folders.set(part, { name:part, key:running, folders:new Map(), files:[] });
+        cur = cur.folders.get(part);
+      }
+      cur.files.push(rec);
+    }
+    return root;
+  }
+
+  function renderLoadedFileFolderBranch(branch, depth=0){
+    const frag = document.createDocumentFragment();
+    const folders = Array.from(branch.folders.values()).sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')));
+    for (const folder of folders){
+      const folderKey = `FOLDER::${folder.key}`;
+      if (!expandedIds.has(folderKey)) expandedIds.add(folderKey);
+
+      const row = document.createElement('div');
+      row.className = 'treeGroupRow treeRow';
+      row.dataset.id = folderKey;
+      row.style.marginLeft = `${depth * 16}px`;
+      const folderState = getFolderVisState(folderKey);
+      const folderHiddenEffective = (folderState === 'hidden') || hasHiddenFolderAncestor(folderKey);
+      const folderDisabledEffective = !folderHiddenEffective && ((folderState === 'disabled') || hasDisabledFolderAncestor(folderKey));
+      if (folderHiddenEffective) row.classList.add('hidden');
+      if (folderDisabledEffective) row.classList.add('disabled');
+
+      const twisty = document.createElement('div');
+      twisty.className = 'twisty';
+      twisty.textContent = expandedIds.has(folderKey) ? '▾' : '▸';
+      row.appendChild(twisty);
+
+      const visBtn = document.createElement('div');
+      visBtn.className = 'visBtn';
+      visBtn.textContent = (folderState==='visible') ? '👁' : (folderState==='hidden') ? '🚫' : '⦸';
+      visBtn.title = (folderState==='visible') ? 'Visible' : (folderState==='hidden') ? 'Hidden' : 'Disabled (click-through)';
+      visBtn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        cycleFolderVisState(folderKey);
+        if (primaryId && (isNodeHiddenEffective(primaryId) || isNodeDisabledEffective(primaryId))) clearSelection();
+        refreshAll();
+        syncOverlay(false);
+        renderTree();
+      });
+      row.appendChild(visBtn);
+
+      const icon = document.createElement('div');
+      icon.textContent = '📁';
+      icon.style.opacity = '0.9';
+      row.appendChild(icon);
+
+      const label = document.createElement('div');
+      label.style.flex = '1';
+      label.textContent = folder.name;
+      row.appendChild(label);
+
+      row.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        if (expandedIds.has(folderKey)) expandedIds.delete(folderKey); else expandedIds.add(folderKey);
+        renderTree();
+      });
+
+      frag.appendChild(row);
+      if (expandedIds.has(folderKey)) frag.appendChild(renderLoadedFileFolderBranch(folder, depth+1));
+    }
+
+    const fileRecs = branch.files.slice().sort((a,b)=> String(a?.effectivePath || a?.name || '').localeCompare(String(b?.effectivePath || b?.name || '')));
+    for (const rec of fileRecs){
+      const rootId = makeId(rec.id, 'COL');
+      const node = renderTreeNode(rootId);
+      const wrap = document.createElement('div');
+      wrap.style.marginLeft = `${(depth + 1) * 16}px`;
+      wrap.appendChild(node);
+      frag.appendChild(wrap);
+    }
+    return frag;
+  }
+
+  function renderTree(){
     treeRootEl.innerHTML="";
     idToKidsWrap.clear();
     idToTwisty.clear();
@@ -3623,10 +5482,7 @@ function renderTree(){
     if (treeMode==="type"){
       renderTypeTree();
     } else {
-      for (const rec of files){
-        const rootId = makeId(rec.id, "COL");
-        treeRootEl.appendChild(renderTreeNode(rootId));
-      }
+      treeRootEl.appendChild(renderLoadedFileFolderBranch(buildLoadedFileFolderTree(), 0));
       syncTreeExpansionAll();
     }
 
@@ -3691,9 +5547,11 @@ function renderTree(){
 
           for (const id of ids){
             const nodeRow = renderTreeNode(id);
-            // Indent to visually sit under group
-            nodeRow.style.marginLeft = "18px";
-            treeRootEl.appendChild(nodeRow);
+            // Indent whole subtree to visually sit under group
+            const wrap = document.createElement("div");
+            wrap.style.marginLeft = "18px";
+            wrap.appendChild(nodeRow);
+            treeRootEl.appendChild(wrap);
           }
         }
       }
@@ -4314,6 +6172,364 @@ function renderTree(){
     return ids.filter(id => !hasSelectedAncestor(id));
   }
 
+  function parsePointerSegments(pointer){
+    const s = String(pointer || "").trim();
+    if (!s || s === "COL") return [];
+    return s.split("/").filter(Boolean);
+  }
+  function resolveWidgetSlot(fileJson, pointer){
+    const col = fileJson?.Collection;
+    if (!col) return null;
+    const parts = parsePointerSegments(pointer);
+    if (!parts.length) return null;
+    let arr = Array.isArray(col.Widgets) ? col.Widgets : null;
+    let parentWidget = null;
+    let prefix = "";
+    for (let i=0; i<parts.length; i++){
+      const part = parts[i];
+      const m = /^([WC])(\d+)$/.exec(part);
+      if (!m || !arr) return null;
+      const idx = Number(m[2]);
+      if (!Number.isInteger(idx) || idx < 0 || idx >= arr.length) return null;
+      const wrap = arr[idx];
+      const widget = wrap?.Widget;
+      if (!widget || typeof widget!=="object") return null;
+      if (i === parts.length - 1){
+        return { array: arr, index: idx, wrapper: wrap, widget, parentWidget, token: part, prefix };
+      }
+      parentWidget = widget;
+      arr = Array.isArray(widget.ChildWidgets) ? widget.ChildWidgets : null;
+      prefix += (prefix ? "/" : "") + part;
+    }
+    return null;
+  }
+  function offsetWidgetRoot(widget, dx, dy){
+    if (!widget || typeof widget!=="object") return;
+    const vp = widget.ViewPort;
+    if (vp && typeof vp==="object"){
+      if (Number.isFinite(Number(vp.xorigin))) vp.xorigin = Number(vp.xorigin) + dx;
+      if (Number.isFinite(Number(vp.yorigin))) vp.yorigin = Number(vp.yorigin) + dy;
+    }
+    const anc = widget.Anchor;
+    if (anc && typeof anc==="object"){
+      if (Number.isFinite(Number(anc.xorigin))) anc.xorigin = Number(anc.xorigin) + dx;
+      if (Number.isFinite(Number(anc.yorigin))) anc.yorigin = Number(anc.yorigin) + dy;
+    }
+  }
+  function copyCurrentSelectionToClipboard(){
+    const ids = topmostSelected(selectionList()).filter(canDuplicateNodeId);
+    if (!ids.length){
+      statusEl.textContent = "Select at least 1 real widget to copy";
+      return;
+    }
+    const copied = [];
+    for (const id of ids){
+      const n = idToNode.get(id);
+      const rec = getFileRec(n?.fileId);
+      const ptr = getNodePointer(id);
+      if (!n || !rec || !ptr) continue;
+      const slot = resolveWidgetSlot(rec.json, ptr);
+      if (!slot || !slot.wrapper) continue;
+      copied.push(deepClone(slot.wrapper));
+    }
+    copyClipboard = copied;
+    statusEl.textContent = `Copied ${copied.length} item${copied.length===1 ? "" : "s"}`;
+  }
+
+  function finalizePasteResult(before, newIds, count, actionText){
+    if (!count){
+      statusEl.textContent = "Nothing could be pasted";
+      return;
+    }
+    rebuildModel(true);
+    renderTree();
+    primaryId = newIds[0] || null;
+    selectedIds = new Set(newIds.filter(id=>idToNode.has(id)));
+    applySelectionStyling(false);
+    updateInspector();
+    updateDimsReadout();
+    updateGroupButtonUI();
+    updateDuplicateButtonUI();
+    updateDeleteButtonUI();
+    updateFitButtonsUI();
+    refreshAll();
+    syncOverlay(false);
+    pushUndo(before);
+    statusEl.textContent = `${actionText} ${count} item${count===1 ? "" : "s"}`;
+  }
+
+  function pasteClipboardIntoTarget(targetId){
+    if (!canPasteIntoNodeId(targetId)){
+      statusEl.textContent = hasClipboardItems() ? "Choose a real widget to paste into" : "Copy an item first";
+      return;
+    }
+    const targetNode = idToNode.get(targetId);
+    const rec = getFileRec(targetNode?.fileId);
+    const ptr = getNodePointer(targetId);
+    const slot = resolveWidgetSlot(rec?.json, ptr);
+    if (!rec || !slot || !slot.widget) {
+      statusEl.textContent = "Paste into failed";
+      return;
+    }
+    const before = snapshotWorkspace();
+    if (!Array.isArray(slot.widget.ChildWidgets)) slot.widget.ChildWidgets = [];
+    const newIds = [];
+    let count = 0;
+    for (const wrap of copyClipboard){
+      const cloneWrap = deepClone(wrap);
+      const insertAt = slot.widget.ChildWidgets.length;
+      slot.widget.ChildWidgets.push(cloneWrap);
+      const newPtr = ptr ? `${ptr}/C${insertAt}` : `C${insertAt}`;
+      newIds.push(makeId(rec.id, newPtr));
+      count += 1;
+    }
+    finalizePasteResult(before, newIds, count, "Pasted into");
+  }
+
+  function pasteClipboardNextToTarget(targetId){
+    if (!canPasteNextToNodeId(targetId)){
+      statusEl.textContent = hasClipboardItems() ? "Choose a real widget to paste next to" : "Copy an item first";
+      return;
+    }
+    const targetNode = idToNode.get(targetId);
+    const rec = getFileRec(targetNode?.fileId);
+    const ptr = getNodePointer(targetId);
+    const slot = resolveWidgetSlot(rec?.json, ptr);
+    if (!rec || !slot || !slot.array) {
+      statusEl.textContent = "Paste next to failed";
+      return;
+    }
+    const before = snapshotWorkspace();
+    const newIds = [];
+    let insertedCount = 0;
+    let count = 0;
+    for (const wrap of copyClipboard){
+      const cloneWrap = deepClone(wrap);
+      const insertAt = slot.index + 1 + insertedCount;
+      slot.array.splice(insertAt, 0, cloneWrap);
+      insertedCount += 1;
+      const token = slot.token.charAt(0) + String(insertAt);
+      const newPtr = slot.prefix ? `${slot.prefix}/${token}` : token;
+      newIds.push(makeId(rec.id, newPtr));
+      count += 1;
+    }
+    finalizePasteResult(before, newIds, count, "Pasted next to");
+  }
+
+
+
+  function getRectSnapForId(id){
+    const n = idToNode.get(id);
+    if (!n) return null;
+    if (n.layoutType==="anchor"){
+      const p = absAnchorPointGame(id);
+      return { id, type:"anchor", p:{ x:p.x, y:p.y } };
+    }
+    if (n.layoutType==="viewport" || isMapViewImageNode(n)){
+      const tl = absBoxTopLeftGame(id);
+      const sz = nodeSizeGame(n);
+      return { id, type:(isMapViewImageNode(n) ? "mapview_image" : "viewport"), tl:{ x:tl.x, y:tl.y }, w:sz.w, h:sz.h };
+    }
+    return null;
+  }
+  function restoreRectSnap(snap){
+    if (!snap) return;
+    const n = idToNode.get(snap.id);
+    if (!n) return;
+    if (snap.type==="anchor"){
+      setNodeFromAbsTLGame(snap.id, { x: snap.p.x - ANCHOR_BOX/2, y: snap.p.y - ANCHOR_BOX/2 });
+      return;
+    }
+    if (snap.type==="mapview_image" && isMapViewImageNode(n)){
+      const obj = n.obj || {};
+      obj.width = Math.max(1, Math.round(snap.w||1));
+      obj.height = Math.max(1, Math.round(snap.h||1));
+      setNodeFromAbsTLGame(snap.id, snap.tl);
+      return;
+    }
+    if (snap.type==="viewport" && n.layoutType==="viewport" && n.vp){
+      n.vp.width = Math.max(1, Math.round(snap.w||1));
+      n.vp.height = Math.max(1, Math.round(snap.h||1));
+      setNodeFromAbsTLGame(snap.id, snap.tl);
+    }
+  }
+  function setNodeRectAbsPreserveChildren(id, rect){
+    const n = idToNode.get(id);
+    if (!n || !(n.layoutType==="viewport" || isMapViewImageNode(n))) return false;
+
+    const kidsSnap = getDescendants(id).map(getRectSnapForId).filter(Boolean);
+    const prevPrimary = primaryId;
+    const prevSubtree = subtreeScaleEnabled;
+    primaryId = id;
+    subtreeScaleEnabled = false;
+    setWidthHeight(Math.max(1, Math.round(rect.w||1)), Math.max(1, Math.round(rect.h||1)));
+    setTopLeftAbs(Math.round(rect.x||0), Math.round(rect.y||0));
+    for (const snap of kidsSnap) restoreRectSnap(snap);
+    subtreeScaleEnabled = prevSubtree;
+    primaryId = prevPrimary;
+    return true;
+  }
+  function getChildBoundsGame(id){
+    const ids = getDescendants(id);
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    let count = 0;
+    for (const cid of ids){
+      const cn = idToNode.get(cid);
+      if (!cn) continue;
+      if (!(cn.layoutType==="viewport" || isMapViewImageNode(cn))) continue;
+      const tl = absBoxTopLeftGame(cid);
+      const sz = nodeSizeGame(cn);
+      if (!Number.isFinite(tl.x) || !Number.isFinite(tl.y) || !Number.isFinite(sz.w) || !Number.isFinite(sz.h)) continue;
+      minX = Math.min(minX, tl.x);
+      minY = Math.min(minY, tl.y);
+      maxX = Math.max(maxX, tl.x + sz.w);
+      maxY = Math.max(maxY, tl.y + sz.h);
+      count += 1;
+    }
+    if (!count) return null;
+    return { x:minX, y:minY, w:Math.max(1, Math.round(maxX - minX)), h:Math.max(1, Math.round(maxY - minY)), count };
+  }
+  function fitSelectionToChildren(){
+    const ids = topmostSelected(selectionList()).filter(canFitNodeId);
+    if (!ids.length){
+      statusEl.textContent = "Select at least 1 item to fit";
+      updateFitButtonsUI();
+      return;
+    }
+    const before = snapshotWorkspace();
+    let changed = 0;
+    let missingKids = 0;
+    for (const id of ids){
+      const bounds = getChildBoundsGame(id);
+      if (!bounds){ missingKids += 1; continue; }
+      if (setNodeRectAbsPreserveChildren(id, bounds)) changed += 1;
+    }
+    refreshAll();
+    syncOverlay(false);
+    updateInspector();
+    updateDimsReadout();
+    updateGroupButtonUI();
+    updateDuplicateButtonUI();
+    updateDeleteButtonUI();
+    updateFitButtonsUI();
+    updateFitButtonsUI();
+    if (!changed){
+      statusEl.textContent = (missingKids>0) ? "Selected item has no child bounds to fit" : "Nothing changed";
+      return;
+    }
+    pushUndo(before);
+    statusEl.textContent = (changed===1) ? "Fitted item to children" : `Fitted ${changed} items to children`;
+  }
+  function fitSelectionToScreen(){
+    const ids = topmostSelected(selectionList()).filter(canFitNodeId);
+    if (!ids.length){
+      statusEl.textContent = "Select at least 1 item to fit";
+      updateFitButtonsUI();
+      return;
+    }
+    const before = snapshotWorkspace();
+    let changed = 0;
+    for (const id of ids){
+      if (setNodeRectAbsPreserveChildren(id, { x:0, y:0, w:SCREEN_W, h:SCREEN_H })) changed += 1;
+    }
+    refreshAll();
+    syncOverlay(false);
+    updateInspector();
+    updateDimsReadout();
+    updateGroupButtonUI();
+    updateDuplicateButtonUI();
+    updateDeleteButtonUI();
+    updateFitButtonsUI();
+    updateFitButtonsUI();
+    if (!changed){
+      statusEl.textContent = "Nothing changed";
+      return;
+    }
+    pushUndo(before);
+    statusEl.textContent = (changed===1) ? "Fitted item to virtual screen" : `Fitted ${changed} items to virtual screen`;
+  }
+
+  function pruneIdSet(setObj){
+    return new Set(Array.from(setObj||[]).filter(id=>idToNode.has(id)));
+  }
+  function deleteCurrentSelection(){
+    const ids = topmostSelected(selectionList()).filter(canDuplicateNodeId);
+    if (!ids.length){
+      statusEl.textContent = "Select at least 1 real widget to delete";
+      updateDeleteButtonUI();
+      return;
+    }
+
+    const before = snapshotWorkspace();
+    const doomed = new Set();
+    const byFile = new Map();
+
+    for (const id of ids){
+      const n = idToNode.get(id);
+      const rec = getFileRec(n?.fileId);
+      const ptr = getNodePointer(id);
+      if (!n || !rec || !ptr) continue;
+      for (const did of getSubtreeIds(id)) doomed.add(did);
+      const slot = resolveWidgetSlot(rec.json, ptr);
+      if (!slot || !slot.array || !slot.wrapper) continue;
+      const key = `${rec.id}::${slot.prefix}`;
+      if (!byFile.has(key)) byFile.set(key, { entries: [] });
+      byFile.get(key).entries.push({ id, ptr, slot });
+    }
+
+    let delCount = 0;
+    for (const { entries } of byFile.values()){
+      entries.sort((a,b)=>b.slot.index - a.slot.index);
+      for (const entry of entries){
+        if (!entry.slot.array || entry.slot.index < 0 || entry.slot.index >= entry.slot.array.length) continue;
+        entry.slot.array.splice(entry.slot.index, 1);
+        delCount += 1;
+      }
+    }
+
+    if (!delCount){
+      statusEl.textContent = "Nothing could be deleted";
+      updateDeleteButtonUI();
+      return;
+    }
+
+    removeIdsFromGroups(Array.from(doomed));
+    for (const id of doomed){
+      hiddenIds.delete(id);
+      disabledIds.delete(id);
+      expandedIds.delete(id);
+      selectedIds.delete(id);
+      itemPngData.delete(id);
+      textOverrideData.delete(id);
+      textAnchorOverrideData.delete(id);
+    }
+    if (primaryId && doomed.has(primaryId)) primaryId = null;
+
+    rebuildModel(true);
+    pruneGroups();
+    hiddenIds = pruneIdSet(hiddenIds);
+    disabledIds = pruneIdSet(disabledIds);
+    expandedIds = pruneIdSet(expandedIds);
+    selectedIds = pruneIdSet(selectedIds);
+
+    if (!selectedIds.size) primaryId = null;
+    else if (!primaryId || !selectedIds.has(primaryId)) primaryId = Array.from(selectedIds)[0] || null;
+
+    renderTree();
+    applySelectionStyling(false);
+    updateInspector();
+    updateDimsReadout();
+    updateGroupButtonUI();
+    updateDuplicateButtonUI();
+    updateDeleteButtonUI();
+    updateFitButtonsUI();
+    updateFitButtonsUI();
+    refreshAll();
+    syncOverlay(false);
+    pushUndo(before);
+    statusEl.textContent = `Deleted ${delCount} item${delCount===1 ? "" : "s"}`;
+  }
+
   function wireInspector(){
     const trackManualEdit = (el)=>{
       if (!el) return;
@@ -4638,6 +6854,9 @@ function clearSelection(){
   updateInspector();
   updateDimsReadout();
   updateGroupButtonUI();
+  updateDuplicateButtonUI();
+  updateDeleteButtonUI();
+  updateFitButtonsUI();
 }
 
 function selectOnly(id){
@@ -4652,6 +6871,9 @@ function selectOnly(id){
   updateDimsReadout();
   focusTreeRow(primaryId);
   updateGroupButtonUI();
+  updateDuplicateButtonUI();
+  updateDeleteButtonUI();
+  updateFitButtonsUI();
 }
 
 function toggleSelect(id){
@@ -4674,6 +6896,9 @@ function toggleSelect(id){
     updateInspector();
     updateDimsReadout();
     updateGroupButtonUI();
+    updateDuplicateButtonUI();
+    updateDeleteButtonUI();
+    updateFitButtonsUI();
     if (primaryId) focusTreeRow(primaryId);
     return;
   }
@@ -4682,6 +6907,9 @@ function toggleSelect(id){
   updateInspector();
   updateDimsReadout();
   updateGroupButtonUI();
+  updateDuplicateButtonUI();
+  updateDeleteButtonUI();
+  updateFitButtonsUI();
 }
 
 function selectionList(){
@@ -4696,48 +6924,48 @@ function selectionList(){
 }
 
 function applySelectionStyling(scrollCanvas){
-  document.querySelectorAll(".treeRow.selected").forEach(el=>el.classList.remove("selected"));
-  document.querySelectorAll(".box.selected").forEach(el=>el.classList.remove("selected"));
-  document.querySelectorAll(".box.childHilite").forEach(el=>el.classList.remove("childHilite"));
+  document.querySelectorAll(".treeRow.selected, .treeRow.scopeEditing").forEach(el=>{ el.classList.remove("selected"); el.classList.remove("scopeEditing"); });
+  document.querySelectorAll(".box.selected, .box.scopeEditing, .box.hovered").forEach(el=>{ el.classList.remove("selected"); el.classList.remove("scopeEditing"); el.classList.remove("hovered"); });
+  document.querySelectorAll(".box.childHilite, .box.scopeChildDim").forEach(el=>{ el.classList.remove("childHilite"); el.classList.remove("scopeChildDim"); });
+  clearHover();
+  overlay.style.display="none";
 
-  if (!primaryId){
-    overlay.style.display="none";
-    alignSelect.disabled=true;
-    updateInspector();
-    renderMiniView();
-    return;
+  const scopeId = getActiveCanvasScopeId();
+  if (scopeId && fileRec && scopeId !== fileRec.rootId){
+    const scopeRow = treeRootEl.querySelector(`.treeRow[data-id="${CSS.escape(scopeId)}"]`);
+    if (scopeRow) scopeRow.classList.add("scopeEditing");
+    const scopeBox = idToBox.get(scopeId);
+    if (scopeBox && !isNodeHiddenEffective(scopeId)) scopeBox.classList.add("scopeEditing");
   }
 
-  // Mark all selected rows/boxes
-  for (const id of selectedIds){
-    const row = treeRootEl.querySelector(`.treeRow[data-id="${CSS.escape(id)}"]`);
-    if (row) row.classList.add("selected");
-    const box = idToBox.get(id);
-    if (box) box.classList.add("selected");
+  if (primaryId && idToNode.has(primaryId) && !isNodeHiddenEffective(primaryId) && !isNodeDisabledEffective(primaryId)) {
+    const ids = Array.from(selectedIds||[]).filter(id=>idToNode.has(id) && !isNodeHiddenEffective(id) && !isNodeDisabledEffective(id));
+    if (!ids.includes(primaryId)) ids.unshift(primaryId);
+    selectedIds = new Set(ids);
+
+    for (const id of ids){
+      const row = treeRootEl.querySelector(`.treeRow[data-id="${CSS.escape(id)}"]`);
+      if (row) row.classList.add("selected");
+      const box = idToBox.get(id);
+      if (box) box.classList.add("selected");
+      const sub = getSubtreeIds(id);
+      for (const sid of sub){
+        if (sid === id) continue;
+        const sbox = idToBox.get(sid);
+        if (sbox && !isNodeHiddenEffective(sid)) sbox.classList.add("childHilite");
+      }
+    }
+
+    alignSelect.disabled = false;
+    syncOverlay(!!scrollCanvas);
+  } else {
+    selectedIds = new Set();
+    primaryId = null;
+    alignSelect.disabled = true;
   }
 
-  // Highlight descendants of selected items (white). Hidden items are not drawn.
-  // Disabled items keep their disabled styling (red dashed) and are not overridden.
-  const childSet = new Set();
-  for (const sid of selectedIds){
-    for (const did of getDescendants(sid)) childSet.add(did);
-  }
-  for (const did of childSet){
-    if (selectedIds.has(did)) continue;
-    if (isNodeHiddenEffective(did) || isNodeDisabledEffective(did)) continue;
-    const box = idToBox.get(did);
-    if (box) box.classList.add("childHilite");
-  }
-
-  // If selectedIds somehow empty, still show primary
-  if (selectedIds.size===0){
-    const row = treeRootEl.querySelector(`.treeRow[data-id="${CSS.escape(primaryId)}"]`);
-    if (row) row.classList.add("selected");
-    const box = idToBox.get(primaryId);
-    if (box) box.classList.add("selected");
-  }
-
-  syncOverlay(scrollCanvas);
+  updateInspector();
+  renderMiniView();
 }
 
 function updateAlignUI(){
@@ -5064,8 +7292,7 @@ function wireNudgePad(){
     for (const id of hits) for (const mid of expandIdsWithGroups([id])) next.add(mid);
     selectedIds = next;
     primaryId = hits.length ? hits[hits.length-1] : (primaryId && next.has(primaryId) ? primaryId : (next.size? Array.from(next)[next.size-1] : null));
-    syncOverlay(false);
-    updateInspector();
+    applySelectionStyling(false);
   });
 
   window.addEventListener('mouseup',(e)=>{
@@ -5075,6 +7302,8 @@ function wireNudgePad(){
     // If it was just a click on empty space (no drag), clear selection unless Ctrl/Cmd held
     if (!wasActive){
       if (!(e.ctrlKey || e.metaKey)) clearSelection();
+    } else {
+      suppressSelectionClick();
     }
     marqueeState = null;
   });
@@ -5125,7 +7354,8 @@ function wireNudgePad(){
       hRight.style.right=`-${o}px`; hRight.style.top=`50%`; hRight.style.transform="translateY(-50%)";
       hTop.style.top=`-${o}px`; hTop.style.left=`50%`; hTop.style.transform="translateX(-50%)";
       hBottom.style.bottom=`-${o}px`; hBottom.style.left=`50%`; hBottom.style.transform="translateX(-50%)";
-      return; // never scroll view on selection
+      updateDimsReadout();
+      return;
     }
 
     if (!primaryId) return;
@@ -5145,13 +7375,13 @@ function wireNudgePad(){
     overlay.style.width  = `${Math.max(1, Math.round(sz.w*z))}px`;
     overlay.style.height = `${Math.max(1, Math.round(sz.h*z))}px`;
 
-    const isVp = (n.layoutType==="viewport");
+    const isVp = (n.layoutType==="viewport") || isMapViewImageNode(n);
     const handles=[hTL,hTR,hBL,hBR,hLeft,hRight,hTop,hBottom];
     handles.forEach(h=>h.style.display = isVp ? "" : "none");
     if (!isVp){
+      updateDimsReadout();
       return;
-    updateDimsReadout();
-  }
+    }
 
     const o=10;
     hTL.style.left=`-${o}px`; hTL.style.top=`-${o}px`; hTL.style.right=""; hTL.style.bottom="";
@@ -5163,6 +7393,7 @@ function wireNudgePad(){
     hRight.style.right=`-${o}px`; hRight.style.top=`50%`; hRight.style.transform="translateY(-50%)";
     hTop.style.top=`-${o}px`; hTop.style.left=`50%`; hTop.style.transform="translateX(-50%)";
     hBottom.style.bottom=`-${o}px`; hBottom.style.left=`50%`; hBottom.style.transform="translateX(-50%)";
+    updateDimsReadout();
   }
 
   function focusOnId(id){
@@ -5286,16 +7517,11 @@ function wireNudgePad(){
       const tl=absBoxTopLeftGame(id);
       const sz=nodeSizeGame(n);
 
-      // Stacking/selection priority:
-      // 1) Children should be on top of their parents (depth wins).
-      // 2) Within the same depth, items lower on the screen should be on top (Y wins).
-      // 3) Selected items are always on top of everything.
-      const depth = nodeDepth(id);
-      const bottomY = (tl.y + sz.h);
-      const yZi = Math.min(29999, Math.max(0, Math.floor(bottomY)));
-      const baseZi = 1000 + (depth * 30000) + yZi;
-      const isSel = selectedIds.has(id);
-      el.style.zIndex = String(baseZi); // selection outline handled by overlay; keep depth-based stacking for accurate picking
+      // Game-like stacking for content preview:
+      // prefer JSON draw order fields (ZPlane / ZPlaneLocalOffset),
+      // then fall back to source traversal order for ties.
+      const baseZi = nodeRenderZIndex(id);
+      el.style.zIndex = String(baseZi);
 
       const px=gameToPx(tl);
       el.style.left = `${Math.round(px.x)}px`;
@@ -5315,11 +7541,8 @@ function wireNudgePad(){
       if (hidden || disabled) continue;
       const ap=absAnchorPointGame(id);
 
-      // Keep anchor markers consistent with box stacking (depth > Y), and selected on top.
-      const depth = nodeDepth(id);
-      const yZi = Math.min(29999, Math.max(0, Math.floor(ap.y)));
-      const baseZi = 1000 + (depth * 30000) + yZi + 1;
-      const isSel = selectedIds.has(id);
+      // Keep anchor markers consistent with JSON-driven stacking.
+      const baseZi = nodeRenderZIndex(id) + 1;
       m.style.zIndex = String(baseZi);
 
       const px=gameToPx(ap);
@@ -5413,6 +7636,7 @@ function wireNudgePad(){
   // ==== Hover highlight (preselect hint) ====
   let hoverId = null;
   let hoverIds = new Set();
+  let hoverDimIds = new Set();
   function getSubtreeIds(rootId){
     const out = [];
     if (!rootId || !idToNode.has(rootId)) return out;
@@ -5430,52 +7654,14 @@ function wireNudgePad(){
     if (hoverGhostLayer) hoverGhostLayer.innerHTML = "";
   }
   function addHoverGhost(id){
-    if (!hoverGhostLayer) return;
-    const n = idToNode.get(id);
-    if (!n) return;
-    const tl = absBoxTopLeftGame(id);
-    const sz = nodeSizeGame(n);
-    const px = gameToPx(tl);
-    const g = document.createElement("div");
-    g.className = "hoverGhost";
-    const depth = nodeDepth(id);
-    const bottomY = (tl.y + sz.h);
-    const yZi = Math.min(29999, Math.max(0, Math.floor(bottomY)));
-    const baseZi = 1000 + (depth * 30000) + yZi;
-    g.style.zIndex = String(baseZi);
-    g.style.left = `${Math.round(px.x)}px`;
-    g.style.top = `${Math.round(px.y)}px`;
-    g.style.width = `${Math.max(1, Math.round(sz.w*zoomFactor()))}px`;
-    g.style.height = `${Math.max(1, Math.round(sz.h*zoomFactor()))}px`;
-    hoverGhostLayer.appendChild(g);
+    return;
   }
   function setHoverId(id, includeSubtree=false){
-    const targetIds = new Set();
-    if (id){
-      const ids = includeSubtree ? getSubtreeIds(id) : [id];
-      ids.forEach(x=>targetIds.add(x));
-    }
-    if (hoverId === id && hoverIds.size === targetIds.size){
-      let same = true;
-      for (const x of targetIds){ if (!hoverIds.has(x)) { same = false; break; } }
-      if (same) return;
-    }
-    for (const prevId of hoverIds){
-      const prev = idToBox.get(prevId);
-      if (prev) prev.classList.remove("hovered");
-    }
+    hoverId = null;
+    hoverIds = new Set();
+    hoverDimIds = new Set();
+    document.querySelectorAll('.box.hovered, .box.scopeChildDim').forEach(el=>{ el.classList.remove('hovered'); el.classList.remove('scopeChildDim'); });
     clearHoverGhosts();
-    hoverId = id;
-    hoverIds = targetIds;
-    for (const hid of hoverIds){
-      const el = idToBox.get(hid);
-      const hidden = isNodeHiddenEffective(hid);
-      if (el && !hidden){
-        el.classList.add("hovered");
-      }else{
-        addHoverGhost(hid);
-      }
-    }
     renderMiniView();
   }
 
@@ -5484,40 +7670,34 @@ function wireNudgePad(){
   }
 
   function pickTopmostBoxUnderClient(x, y){
-    const el = document.elementFromPoint(x, y);
-    const box = el ? el.closest?.(".box") : null;
-    if (!box) return null;
-    const id = box.dataset?.id || null;
-    if (!id) return null;
-    if (isNodeHiddenEffective(id) || isNodeDisabledEffective(id)) return null;
-    return id;
+    return null;
   }
 
   canvasWrap.addEventListener("mousemove", (e)=>{
-    if (!fileRec) return;
-    if (panState || dragState || marqueeState) { clearHover(); return; }
-    // Don't change hover while on resize handles (they are separate elements)
-    if (e.target && e.target.closest && e.target.closest("#selectionOverlay .handle")) { clearHover(); return; }
-    const id = pickTopmostBoxUnderClient(e.clientX, e.clientY);
-    setHoverId(id);
-  }, {passive:true});
-
-  canvasWrap.addEventListener("mouseleave", ()=>{
     clearHover();
-  });
+  }, {passive:true});
 
 
   // Click-to-select should only commit on mouseup (prevents "click+hold" selecting immediately)
   let pendingClickSelect = null; // {id, sx, sy, moved}
   const CLICK_SELECT_THRESH2 = 16; // 4px
+  let suppressSelectionClickUntil = 0;
+  function suppressSelectionClick(ms=250){
+    suppressSelectionClickUntil = Math.max(suppressSelectionClickUntil, Date.now() + ms);
+  }
+  function shouldSuppressSelectionClick(){
+    return Date.now() < suppressSelectionClickUntil;
+  }
 
   window.addEventListener('keydown',(e)=>{
     if (e.key === 'Escape'){
-      // Cancel any in-progress interactions and clear selection
       pendingClickSelect = null;
       if (marqueeState){ hideMarquee(); marqueeState = null; }
       dragState = null;
-      clearSelection();
+      if (getCanvasScopeParentId()){
+        exitCanvasScope();
+        return;
+      }
     }
   });
   window.addEventListener('mousemove',(e)=>{
@@ -5533,16 +7713,7 @@ function wireNudgePad(){
 
 
   window.addEventListener('mouseup',(e)=>{
-    if (!pendingClickSelect) return;
-    const pc = pendingClickSelect;
     pendingClickSelect = null;
-    if (pc.moved) return; // drag happened -> no click selection
-    // Commit click selection on mouseup (keeps camera stable and prevents "click+hold" selecting early)
-    if (!isNodeHiddenEffective(pc.id) && !isNodeDisabledEffective(pc.id)){
-      selectOnly(pc.id);
-      syncOverlay(false);
-      updateInspector();
-    }
   });
 
 
@@ -6220,6 +8391,7 @@ if (subtreeScaleEnabled && dragState.kidsAbsSnap){
     if (finished.kind==="move" && finished.moved) pushUndo(finished.beforeJson);
     if (finished.kind==="scale" && finished.changed) pushUndo(finished.beforeJson);
     if (finished.kind==="groupScale" && finished.changed) pushUndo(finished.beforeJson);
+    if ((finished.kind==="move" && finished.moved) || (finished.kind==="scale" && finished.changed) || (finished.kind==="groupScale" && finished.changed)) suppressSelectionClick();
 
     updateInspector();
     statusEl.textContent="Ready.";
@@ -6410,7 +8582,9 @@ if (subtreeScaleEnabled && dragState.kidsAbsSnap){
       hiddenIds: new Set(),
       selectedIds: new Set(),
       primaryId: null,
-      commandPanelPreviewOpen: (String(json?.Collection?.Name||"")==="CommandPanel") ? loadCmdPreviewForName(name||"") : true,
+      commandPanelPreviewOpen: (String(json?.Collection?.Name||"")==="CommandPanel") ? loadCmdPreviewForName(name||"") : false,
+      effectivePath: String(name || ""),
+      sourceKind: "manual",
     };
     return rec;
   }
@@ -6421,18 +8595,21 @@ if (subtreeScaleEnabled && dragState.kidsAbsSnap){
     if (!files.length){
       fileSelect.disabled = true;
       if (closeFileBtn) closeFileBtn.disabled = true;
+      if (exportJsonBtn) exportJsonBtn.disabled = true;
       if (exportAllBtn) exportAllBtn.disabled = true;
       return;
     }
     for (const rec of files){
       const opt = document.createElement("option");
       opt.value = rec.id;
-      opt.textContent = rec.name;
+      const tag = rec.sourceKind === 'mod' ? '[MOD] ' : (rec.sourceKind === 'new' ? '[NEW] ' : '');
+      opt.textContent = `${tag}${rec.name}`;
       fileSelect.appendChild(opt);
     }
     fileSelect.disabled = false;
     if (fileRec) fileSelect.value = fileRec.id;
     if (closeFileBtn) closeFileBtn.disabled = !fileRec;
+    if (exportJsonBtn) exportJsonBtn.disabled = !fileRec;
     if (exportAllBtn) exportAllBtn.disabled = (files.length===0);
   }
 
@@ -6441,6 +8618,7 @@ if (subtreeScaleEnabled && dragState.kidsAbsSnap){
     if (!rec) return;
     fileRec = rec;
     activeFileId = rec.id;
+    if (!rec.editScopeId || !idToNode.has(rec.editScopeId)) rec.editScopeId = rec.rootId || null;
     refreshFileSelect();
     updateCommandPanelUI();
     // Keep selection; just refresh inspector so fields match active selection.
@@ -6459,7 +8637,9 @@ if (subtreeScaleEnabled && dragState.kidsAbsSnap){
     hiddenIds = new Set();
     selectedIds = new Set();
     primaryId = null;
-    commandPanelPreviewOpen = true;
+    commandPanelPreviewOpen = false;
+    previewStateOverrideById.clear();
+    if (gameAssetState?.widgetPathCache) gameAssetState.widgetPathCache.clear();
 
     resetModel(false);
     renderTree();
@@ -6509,6 +8689,20 @@ if (subtreeScaleEnabled && dragState.kidsAbsSnap){
   }
   if (closeFileBtn){
     closeFileBtn.addEventListener("click", closeActiveFile);
+  }
+  if (exportJsonBtn){
+    exportJsonBtn.addEventListener("click", ()=>{
+      if (!fileRec) return;
+      const out = serializeFile(fileRec);
+      const blob = new Blob([out], {type:"application/json"});
+      const a = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      a.href = url;
+      a.download = (fileRec.name && String(fileRec.name).trim()) ? fileRec.name : "export.json";
+      a.click();
+      setTimeout(()=>URL.revokeObjectURL(url), 1000);
+      statusEl.textContent = `Exported ${fileRec.name || 'active file'}`;
+    });
   }
   if (exportAllBtn){
     exportAllBtn.addEventListener("click", ()=>{
@@ -6564,6 +8758,8 @@ if (subtreeScaleEnabled && dragState.kidsAbsSnap){
       try{ json = JSON.parse(tx); }
       catch(err){ showError(`Invalid JSON: ${nm}`); dbg(err); continue; }
       const rec = createFileRec(nm, tx, json);
+      rec.effectivePath = String(it?.effectivePath || nm || "");
+      rec.sourceKind = String(it?.sourceKind || 'manual');
       files.push(rec);
       added.push(rec);
     }
@@ -6646,17 +8842,173 @@ if (subtreeScaleEnabled && dragState.kidsAbsSnap){
     }catch(err){ showError(err?.message || err); }
   });
 
-  exportBtn.addEventListener("click", ()=>{
-    if (!fileRec) return;
-    const out = serializeFile(fileRec);
-    const blob = new Blob([out], {type:"application/json"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
+  function sanitizeModFolderName(name){
+    return String(name || "").trim().replace(/[\/:*?"<>|]+/g, "_").replace(/\s+/g, " ").trim() || "My Mod";
+  }
+  function canonicalUiExportPathForFile(rec){
+    const raw = String(rec?.effectivePath || rec?.name || "").replace(/^\[.*?\]\s*/, "").replace(/\\/g, "/").replace(/^\/+/, "");
+    if (!raw) return "widgetui/export.json";
+    const lower = raw.toLowerCase();
+    const idx = lower.indexOf("widgetui/");
+    if (idx >= 0) return raw.slice(idx);
+    const nm = String(rec?.name || "export.json").split(/[\/]/).pop() || "export.json";
+    return `widgetui/${nm}`;
+  }
+  async function getOrCreateDirHandle(rootDir, relDir){
+    let dir = rootDir;
+    const parts = String(relDir || "").replace(/\\/g, "/").split("/").filter(Boolean);
+    for (const part of parts){
+      dir = await dir.getDirectoryHandle(part, {create:true});
+    }
+    return dir;
+  }
+  async function writeTextFileUnder(rootDir, relPath, textValue){
+    const parts = String(relPath || "").replace(/\\/g, "/").split("/").filter(Boolean);
+    const fileName = parts.pop();
+    const dir = await getOrCreateDirHandle(rootDir, parts.join('/'));
+    const handle = await dir.getFileHandle(fileName, {create:true});
+    const writable = await handle.createWritable();
+    await writable.write(textValue);
+    await writable.close();
+  }
+  function dataUrlToBlob(dataUrl){
+    const m = String(dataUrl || "").match(/^data:([^;,]+)?(;base64)?,(.*)$/);
+    if (!m) return null;
+    const mime = m[1] || 'application/octet-stream';
+    const isB64 = !!m[2];
+    const body = m[3] || '';
+    const bytes = isB64 ? Uint8Array.from(atob(body), c => c.charCodeAt(0)) : new TextEncoder().encode(decodeURIComponent(body));
+    return new Blob([bytes], {type:mime});
+  }
+  async function writeBlobFileUnder(rootDir, relPath, blob){
+    const parts = String(relPath || "").replace(/\\/g, "/").split("/").filter(Boolean);
+    const fileName = parts.pop();
+    const dir = await getOrCreateDirHandle(rootDir, parts.join('/'));
+    const handle = await dir.getFileHandle(fileName, {create:true});
+    const writable = await handle.createWritable();
+    await writable.write(blob);
+    await writable.close();
+  }
+  async function createNewEmptyModFolder(){
+    if (!window.showDirectoryPicker){
+      showError('This browser does not support folder creation. Use Chrome or Edge.');
+      return;
+    }
+    try{
+      const defaultName = sanitizeModFolderName('My Mod');
+      const modName = sanitizeModFolderName(window.prompt('New mod folder name:', defaultName));
+      if (!modName) return;
+      const targetParent = await window.showDirectoryPicker({mode:'readwrite'});
+      const modRoot = await targetParent.getDirectoryHandle(modName, {create:true});
+      await modRoot.getDirectoryHandle('widgetui', {create:true});
+      const info = {
+        Author: '',
+        CacheStatus: 1,
+        Description: '',
+        Title: modName
+      };
+      await writeTextFileUnder(modRoot, 'info.json', JSON.stringify(info, null, 2));
 
-    // Export using the exact same filename as the imported file
-    a.download = (fileRec.name && String(fileRec.name).trim()) ? fileRec.name : "export.json";
+      clearFolderAssetState(modFolderState);
+      modFolderHandle = modRoot;
+      modFolderState.rootLabel = modName;
+      modFolderState.ready = true;
+      modFolderState.rawFiles = [];
 
-    a.click();
+      const ok = await rebuildEffectiveGameAssetState();
+      if (!ok){
+        updateLoadReport(0);
+        statusEl.textContent = `Created empty mod: ${modName}`;
+        return;
+      }
+      const count = await loadModUiWorkspace();
+      updateLoadReport(count);
+      statusEl.textContent = baseFolderState.ready
+        ? `Base + mod loaded: ${baseFolderState.rootLabel} + ${modFolderState.rootLabel} (${count} UI JSON)`
+        : `Created empty mod: ${modFolderState.rootLabel}`;
+      try{ dbgInfo('Created empty mod folder:', { mod: modName, files: ['info.json'], dirs: ['widgetui'] }); }catch(_){ }
+    }catch(err){
+      if (err && err.name === 'AbortError') return;
+      showError(err?.message || err);
+    }
+  }
+  async function exportWorkspaceAsModFolder(){
+    if (!window.showDirectoryPicker){
+      showError('This browser does not support folder export. Use Chrome or Edge.');
+      return;
+    }
+    if (!files.length){
+      showError('Nothing loaded to export.');
+      return;
+    }
+    try{
+      const hasImportedMod = !!(modFolderState && modFolderState.ready && String(modFolderState.rootLabel || '').trim());
+      const defaultName = sanitizeModFolderName(hasImportedMod ? `${modFolderState.rootLabel} copy` : (modFolderState.rootLabel || 'My Mod'));
+      const modName = sanitizeModFolderName(window.prompt('Export mod folder name:', defaultName));
+      if (!modName) return;
+      const targetParent = await window.showDirectoryPicker({mode:'readwrite'});
+      const modRoot = await targetParent.getDirectoryHandle(modName, {create:true});
+
+      let copiedAssetCount = 0;
+      const copiedAssetTargets = new Set();
+      try{ (window.__AOE_DBG__||console).info(`Export start: raw mod files=${Array.isArray(modFolderState.rawFiles)?modFolderState.rawFiles.length:0}, workspace files=${files.length}`); }catch(_){ }
+      for (const file of (Array.isArray(modFolderState.rawFiles) ? modFolderState.rawFiles : [])){
+        if (!file) continue;
+        const rel = (typeof normalizeSlashes==='function' ? normalizeSlashes(file.webkitRelativePath || file.name || '') : String(file.webkitRelativePath || file.name || '').replace(/\\/g,'/').replace(/^\.\//,''));
+        if (!rel) continue;
+        const parts = rel.split('/').filter(Boolean);
+        if (parts.length < 2) continue;
+        const relOut = parts.slice(1).join('/');
+        if (!relOut) continue;
+        const normOut = normalizeAssetPath(relOut);
+        if (!normOut || copiedAssetTargets.has(normOut)) continue;
+        if (normOut.endsWith('.json')) continue;
+        const blob = new Blob([await file.arrayBuffer()], {type: file.type || 'application/octet-stream'});
+        await writeBlobFileUnder(modRoot, relOut, blob);
+        copiedAssetTargets.add(normOut);
+        copiedAssetCount++;
+      }
+
+      let jsonCount = 0;
+      for (const rec of files){
+        const rel = canonicalUiExportPathForFile(rec);
+        await writeTextFileUnder(modRoot, rel, serializeFile(rec));
+        jsonCount++;
+      }
+
+      let pngCount = 0;
+      const seenPngTargets = new Set();
+      for (const rec of files){
+        const fileDomain = getUiDomainFromPath(rec?.effectivePath || '');
+        const domainPrefix = fileDomain ? `${fileDomain}/` : '';
+        const nodes = Array.isArray(rec?.nodes) ? rec.nodes : [];
+        for (const node of nodes){
+          const id = node?.id;
+          const dataUrl = itemPngData.get(id);
+          if (!id || !dataUrl) continue;
+          const autoPath = getWidgetResolvedAutoPngPath(id);
+          if (!autoPath) continue;
+          const relPngPath = `${domainPrefix}widgetui/${String(autoPath).replace(/^\/+/, '')}`;
+          const key = normalizeAssetPath(relPngPath);
+          if (!key || seenPngTargets.has(key)) continue;
+          const blob = dataUrlToBlob(dataUrl);
+          if (!blob) continue;
+          await writeBlobFileUnder(modRoot, relPngPath, blob);
+          seenPngTargets.add(key);
+          pngCount++;
+        }
+      }
+
+      statusEl.textContent = `Exported mod "${modName}" (${jsonCount} JSON, ${copiedAssetCount} copied asset, ${pngCount} manual PNG)`;
+      try{ (window.__AOE_DBG__||console).info(`Export detail: copied asset targets=${copiedAssetTargets.size}, manual png targets=${seenPngTargets.size}`); }catch(_){ }
+      try{ (window.__AOE_DBG__||console).info(`Exported mod folder: ${modName} (${jsonCount} JSON, ${copiedAssetCount} copied asset, ${pngCount} manual PNG)`); }catch(_){ }
+    }catch(err){
+      if (err && err.name === 'AbortError') return;
+      showError(err?.message || err);
+    }
+  }
+  exportBtn.addEventListener("click", async ()=>{
+    await exportWorkspaceAsModFolder();
   });// ==== Tree expansion ====
   // Default: expand everything when rebuilt.
   // (User preference persistence can be added later.)
@@ -6854,5 +9206,84 @@ if (subtreeScaleEnabled && dragState.kidsAbsSnap){
 })();
 </script>
 
+
+
+<script>
+(function(){
+  try {
+    const uiOverlayRoot = document.getElementById('uiOverlayRoot');
+    const itemContextMenu = document.getElementById('itemContextMenu');
+    const pngStatePanel = document.getElementById('pngStatePanel');
+    if (uiOverlayRoot) {
+      if (itemContextMenu && itemContextMenu.parentNode !== uiOverlayRoot) uiOverlayRoot.appendChild(itemContextMenu);
+      if (pngStatePanel && pngStatePanel.parentNode !== uiOverlayRoot) uiOverlayRoot.appendChild(pngStatePanel);
+    }
+  } catch (err) { console.error(err); }
+})();
+</script>
+
+
+<script>
+(function(){
+  try {
+    const panel = document.getElementById('pngStatePanel');
+    const header = document.getElementById('pngStatePanelHeader');
+    const closeBtn = document.getElementById('pngStatePanelCloseBtn');
+    if (!panel || !header) return;
+
+    let dragging = false;
+    let startX = 0, startY = 0, startLeft = 0, startTop = 0;
+
+    function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+    function onMove(e){
+      if (!dragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      const rect = panel.getBoundingClientRect();
+      const width = rect.width;
+      const height = rect.height;
+      const pad = 8;
+      const left = clamp(startLeft + dx, pad, Math.max(pad, window.innerWidth - width - pad));
+      const top = clamp(startTop + dy, pad, Math.max(pad, window.innerHeight - height - pad));
+      panel.style.left = left + 'px';
+      panel.style.top = top + 'px';
+      panel.style.transform = 'none';
+    }
+
+    function stopDrag(){
+      if (!dragging) return;
+      dragging = false;
+      document.removeEventListener('mousemove', onMove, true);
+      document.removeEventListener('mouseup', stopDrag, true);
+      document.body.style.userSelect = '';
+    }
+
+    header.addEventListener('mousedown', (e)=>{
+      if (e.button !== 0) return;
+      if (closeBtn && closeBtn.contains(e.target)) return;
+      dragging = true;
+      const rect = panel.getBoundingClientRect();
+      startX = e.clientX;
+      startY = e.clientY;
+      startLeft = rect.left;
+      startTop = rect.top;
+      document.body.style.userSelect = 'none';
+      document.addEventListener('mousemove', onMove, true);
+      document.addEventListener('mouseup', stopDrag, true);
+      e.preventDefault();
+      e.stopPropagation();
+    }, true);
+  } catch (err) { console.error(err); }
+})();
+</script>
+<script>
+(function(){
+  const APP_VERSION = "1.282";
+  try{ document.title = `AoE2DE UI Layout Editor — ${APP_VERSION}`; }catch(_){}
+  const pill = document.getElementById("versionPill");
+  if (pill) pill.textContent = APP_VERSION;
+})();
+</script>
 </body>
 </html>
