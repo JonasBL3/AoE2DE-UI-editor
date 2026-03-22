@@ -1,6 +1,8 @@
 # AoE2DE-UI-editor
 This ui editor lets you import, edit, and export .json files
 
+link to the latest version: https://jonasbl3.github.io/AoE2DE-UI-editor/
+
 This is an unfinished project, so you'll have to figure some things out yourself, but it may help you get going. My app was made to make editing UI elements easier; however, the way the game reads these files is not always clear, so you'll have to do some trial and error. I may or may not continue development. I used ChatGPT 5.2 Thinking to make this. Feel free to edit it and repost it yourself.
 
 The game builds the UI from .json files stored in your games folder. For me, that is here: C:\Program Files (x86)\Steam\steamapps\common\AoE2DE\widgetui
