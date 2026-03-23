@@ -1,10 +1,9 @@
 <!DOCTYPE html>
+<!-- saved from url=(0044)https://jonasbl3.github.io/AoE2DE-UI-editor/ -->
+<html lang="en" style="--canvasUiScale: 1;"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
-<html lang="en">
-<head>
-<meta charset="utf-8"/>
-<meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>AoE2DE UI Layout Editor</title>
+<meta content="width=device-width,initial-scale=1" name="viewport">
+<title>AoE2DE UI Layout Editor — 1.368</title>
 <style>
   :root{
     --ui: 0.85;
@@ -1533,74 +1532,96 @@ body{ position:relative; }
 </style>
 </head>
 <body>
-<div id="uiOverlayRoot"></div>
+<div id="uiOverlayRoot"><div id="itemContextMenu" aria-hidden="true" style="display:none; position:fixed; left:0; top:0;">
+  <button id="ctxCopyBtn">Copy items + children</button>
+  <button id="ctxCutBtn">Cut items + children</button>
+  <button id="ctxPasteIntoBtn">Paste into</button>
+  <button id="ctxPasteNextToBtn">Paste next to</button>
+  <button id="ctxGroupBtn">Group</button>
+  <button id="ctxDeleteBtn">Delete</button>
+  <button id="ctxFitChildrenBtn">Fit to children</button>
+  <button id="ctxFitScreenBtn">Fit screen</button>
+  <button id="ctxHideOtherBtn">Hide other</button>
+  <div class="menuSep"></div>
+  <button id="ctxListPngsBtn">List/set possible PNGs</button>
+  <button id="ctxCreateModImageOverrideBtn">Copy linked image</button>
+  <button id="ctxCreateCanvasImageOverrideBtn">Create image canvas</button>
+  <button id="ctxCreateAllCivsImageOverrideBtn">One image for all civs</button>
+  <button id="ctxRemoveImageLinkBtn">Remove image link</button>
+  <button id="ctxRestoreRemovedImageBtn">Restore removed image</button>
+  <button id="ctxReloadModImageBtn">Refresh image</button>
+  <button id="ctxBgRightToggleBtn">Toggle BGRight Open/Closed</button>
+</div><div id="pngStatePanel" aria-hidden="true" style="display:none; position:fixed; left:50%; top:80px; transform:translateX(-50%);">
+  <div id="pngStatePanelHeader" data-drag-wired="1"><span id="pngStatePanelTitle">Possible PNGs</span><button id="pngStatePanelCloseBtn" type="button">✕</button></div>
+  <div id="pngStatePanelBody"></div>
+</div></div>
 <div id="bootstrapBar" style="position:fixed;left:10px;top:10px;display:none;z-index:2000;pointer-events:auto;background:rgba(20,20,22,.98);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:10px 12px;max-width:520px;color:#eee;font:12px ui-monospace, SFMono-Regular, Menlo, monospace;">
 <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
 <div style="font-weight:800;">BOOTSTRAP IMPORT        <button id="boxesBtn" class="toggle on" title="Toggle blue object outline boxes">Boxes: ON</button>
         <button id="bootstrapPngBtn" class="toggle on" title="Toggle PNG previews on or off">PNG: ON</button>
 </div>
-<input accept=".json" id="bootstrapFileInput" multiple="" style="max-width:280px" type="file"/>
+<input accept=".json" id="bootstrapFileInput" multiple="" style="max-width:280px" type="file">
 <button id="bootstrapTryLoad" style="padding:6px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:#2a2a2a;color:#eee;cursor:pointer;" type="button">Try load into app</button>
 <button id="bootstrapCloseBtn" style="padding:6px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:#2a2a2a;color:#eee;cursor:pointer;" type="button">Close</button>
 </div>
 <div id="bootstrapDrop" style="margin-top:8px;padding:10px;border-radius:10px;border:1px dashed rgba(255,255,255,.25);opacity:.9;">
     Drop a JSON file here (also works if other UI is broken).
   </div>
-<div id="bootstrapLog" style="margin-top:8px;white-space:pre-wrap;max-height:180px;overflow:auto;opacity:.95;">Waiting…</div>
+<div id="bootstrapLog" style="margin-top:8px;white-space:pre-wrap;max-height:180px;overflow:auto;opacity:.95;">Bootstrap ready. If the normal Import is broken, use this.</div>
 </div>
 <div id="toolbar" class="toolbarBasic">
   <div class="tbSection appSection">
         <div class="tbSectionBody">
-      <button id="advancedModeBtn" class="w200" title="Show or hide advanced features">Advanced: OFF</button>
-      <button id="gameFolderBtn" class="advancedOnly w300">Load Base Game</button>
-      <input id="gameFolderInput" type="file" webkitdirectory directory multiple hidden/>
-      <button id="modFolderBtn" class="advancedOnly w100">Import Mod</button>
-      <input id="modFolderInput" type="file" webkitdirectory directory multiple hidden/>
-      <button id="exportBtn" class="advancedOnly w100" disabled>Export Mod</button>
+      <button id="advancedModeBtn" class="w200" title="Advanced features are hidden">Advanced: OFF</button>
+      <button id="gameFolderBtn" class="advancedOnly w300" title="Select the base game widgetui folder (the folder that contains the UI JSON files and materials.json)." style="display: none;">Load Base Game</button>
+      <input id="gameFolderInput" type="file" webkitdirectory="" directory="" multiple="" hidden="">
+      <button id="modFolderBtn" class="advancedOnly w100" style="display: none;">Import Mod</button>
+      <input id="modFolderInput" type="file" webkitdirectory="" directory="" multiple="" hidden="">
+      <button id="exportBtn" class="advancedOnly w100" disabled="" style="display: none;" data-wired-primary="1">Export Mod</button>
       <button id="importBtn" class="w100">Import JSON</button>
-      <input accept=".json" hidden id="fileInput" multiple type="file"/>
-      <button id="exportAllBtn" class="advancedOnly w100" disabled title="Export all loaded files">Export All</button>
+      <input accept=".json" hidden="" id="fileInput" multiple="" type="file">
+      <button id="exportAllBtn" class="advancedOnly w100" disabled="" title="Export all loaded files" style="display: none;">Export All</button>
       <span class="btnLike w300" style="cursor:default;">
         <span style="opacity:.9">File</span>
-        <select id="fileSelect" disabled></select>
+        <select id="fileSelect" disabled=""></select>
       </span>
-      <button id="exportJsonBtn" class="w100" disabled title="Export the active JSON file">Export JSON</button>
-      <button id="closeFileBtn" class="w100" disabled>Close</button>
-      <button id="undoBtn" class="w100" disabled>Undo</button>
-      <button id="redoBtn" class="w100" disabled>Redo</button>
-            <button id="hideAllBtn" class="w100" disabled>Hide all</button>
-      <button id="showAllBtn" class="w100" disabled>Show all</button>
-      <button id="labelsToggleBtn" class="toggle advancedOnly w100">Labels: ON</button>
-      <button id="boxesToggleBtn" class="toggle advancedOnly w100">Boxes: ON</button>
-      <button id="pngBtn" class="toggle advancedOnly w100">PNG: ON</button>
-      <button id="textToggleBtn" class="toggle advancedOnly w100">Text: ON</button>
-      <button id="snapBtn" class="toggle advancedOnly w100">Snapping: ON</button>
-      <button id="guidesBtn" class="toggle advancedOnly w100">Snaplines: ON</button>
-      <button id="selectionModeBtn" class="toggle advancedOnly w300" title="Toggle selection behavior" style="display:none">Selection: Simple</button>
-      <span class="miniLabel w100">Snap</span><input id="snapDist" class="w100" type="number" value="10" min="0" step="1" title="Snap distance (px)"/>
-      <span class="miniLabel" style="display:none">Inset</span><input id="borderOffset" type="number" value="0" min="0" step="1" title="Inset margin (px)" style="width:72px;display:none"/>
-      <button id="bgLoadBtn" class="advancedOnly w300">Load Background</button>
-      <input id="bgInput" type="file" accept="image/*" hidden/>
-      <button id="bgToggleBtn" class="toggle advancedOnly w100">BG: OFF</button>
-      <span class="miniLabel advancedOnly w100">Panels</span><select id="panelCollectionSelect" class="advancedOnly w100" title="Choose the panel art collection to preview"><option value="">AUTO</option></select>
-      <button id="itemPngBtn" disabled style="display:none"></button>
-      <input id="itemPngInput" type="file" accept="image/png" hidden/>
-      <button id="clearItemPngBtn" disabled style="display:none"></button>
+      <button id="exportJsonBtn" class="w100" disabled="" title="Export the active JSON file">Export JSON</button>
+      <button id="closeFileBtn" class="w100" disabled="">Close</button>
+      <button id="undoBtn" class="w100" disabled="">Undo</button>
+      <button id="redoBtn" class="w100" disabled="">Redo</button>
+            <button id="hideAllBtn" class="w100" disabled="">Hide all</button>
+      <button id="showAllBtn" class="w100" disabled="">Show all</button>
+      <button id="labelsToggleBtn" class="toggle advancedOnly w100" style="display: none;">Labels: ON</button>
+      <button id="boxesToggleBtn" class="toggle advancedOnly w100" style="display: none;">Boxes: ON</button>
+      <button id="pngBtn" class="toggle advancedOnly w100" style="display: none;">PNG: ON</button>
+      <button id="textToggleBtn" class="toggle advancedOnly w100" style="display: none;">Text: ON</button>
+      <button id="snapBtn" class="toggle advancedOnly w100" style="display: none;">Snapping: ON</button>
+      <button id="guidesBtn" class="toggle advancedOnly w100" style="display: none;">Snaplines: ON</button>
+      <button id="selectionModeBtn" class="toggle advancedOnly w300" title="Simple: clicking selects the clicked item directly" style="display:none">Selection: Simple</button>
+      <span class="miniLabel w100">Snap</span><input id="snapDist" class="w100" type="number" value="10" min="0" step="1" title="Snap distance (px)">
+      <span class="miniLabel" style="display:none">Inset</span><input id="borderOffset" type="number" value="0" min="0" step="1" title="Inset margin (px)" style="width:72px;display:none">
+      <button id="bgLoadBtn" class="advancedOnly w300" style="display: none;">Load Background</button>
+      <input id="bgInput" type="file" accept="image/*" hidden="">
+      <button id="bgToggleBtn" class="toggle advancedOnly w100" style="display: none;">BG: OFF</button>
+      <span class="miniLabel advancedOnly w100" style="display: none;">Panels</span><select id="panelCollectionSelect" class="advancedOnly w100" title="Choose the panel art collection to preview" style="display: none;"><option value="">AUTO</option></select>
+      <button id="itemPngBtn" disabled="" style="display:none"></button>
+      <input id="itemPngInput" type="file" accept="image/png" hidden="">
+      <button id="clearItemPngBtn" disabled="" style="display:none"></button>
       <button id="clearSavedDataBtn" class="w100" title="Remove all editor-local saved data">Clear saved</button>
       <button id="githubBtn" class="w100" title="Open project on GitHub">GitHub</button>
       <button id="zoomOut" title="Zoom out">−</button>
-      <select id="zoomSelect" class="w100"></select>
+      <select id="zoomSelect" class="w100"><option value="20">20%</option><option value="30">30%</option><option value="40">40%</option><option value="60">60%</option><option value="80">80%</option><option value="100">100%</option><option value="140">140%</option><option value="180">180%</option><option value="240">240%</option><option value="320">320%</option><option value="400">400%</option><option value="500">500%</option><option value="600">600%</option><option value="800">800%</option><option value="1000">1000%</option><option value="1200">1200%</option><option value="1600">1600%</option><option value="2000">2000%</option><option value="2400">2400%</option><option value="3200">3200%</option></select>
       <button id="zoomIn" title="Zoom in">+</button>
-      <span class="miniLabel advancedOnly w100">Canvas UI</span><select id="canvasUiScaleSelect" class="advancedOnly w100" title="Scale labels and anchor markers in the canvas"><option value="0.5">50%</option><option value="0.75">75%</option><option value="1" selected>100%</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option></select>
+      <span class="miniLabel advancedOnly w100" style="display: none;">Canvas UI</span><select id="canvasUiScaleSelect" class="advancedOnly w100" title="Scale labels and anchor markers in the canvas" style="display: none;"><option value="0.5">50%</option><option value="0.75">75%</option><option value="1" selected="">100%</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option></select>
 
     </div>
   </div>
 
   <div class="tbSection itemSection">
         <div class="tbSectionBody">
-      <span class="miniLabel advancedOnly w100">PNG</span><span id="pngSourceBadge" class="srcNone advancedOnly w100" title="PNG source">NONE</span><input id="pngPathDisplay" class="advancedOnly w300" type="text" readonly placeholder="No PNG linked" title="Resolved PNG path for the selected item"/>
-      <div class="imageMenuWrap advancedOnly">
-        <button id="imageMenuBtn" class="w200" type="button" title="Image actions">Image ▾</button>
+      <span class="miniLabel advancedOnly w100" style="display: none;">PNG</span><span id="pngSourceBadge" class="srcNone advancedOnly w100" title="PNG source" style="display: none;">NONE</span><input id="pngPathDisplay" class="advancedOnly w300" type="text" readonly="" placeholder="No PNG linked" title="Resolved PNG path for the selected item" style="display: none;">
+      <div class="imageMenuWrap advancedOnly" style="display: none;">
+        <button id="imageMenuBtn" class="w200" type="button" title="Image actions" aria-expanded="false">Image ▾</button>
         <div id="imageMenu" class="imageMenu">
           <button id="modImageBtn" title="On Export Mod, copy the current linked image into the mod folder. Then edit that exported image and use Refresh image or Import Mod to load it back in.">Copy linked image</button>
           <button id="exportImageCanvasBtn" title="On Export Mod, create a canvas PNG at the item size with child boxes drawn into it. Then edit that exported image and use Refresh image or Import Mod to load it back in.">Create image canvas</button>
@@ -1612,11 +1633,11 @@ body{ position:relative; }
         </div>
       </div>
 
-      <div id="anchorGridMini" class="anchorGridMini" title="Anchor"></div>
-      <input id="inspAX" class="w100" type="number" step="1" title="Anchor X" placeholder="AnchorX"/>
-      <input id="inspAY" class="w100" type="number" step="1" title="Anchor Y" placeholder="AnchorY"/>
+      <div id="anchorGridMini" class="anchorGridMini" title="Anchor"><div class="anchorCellMini" data-align="TopLeft" title="TopLeft"></div><div class="anchorCellMini" data-align="TopCentre" title="TopCentre"></div><div class="anchorCellMini" data-align="TopRight" title="TopRight"></div><div class="anchorCellMini" data-align="CentreLeft" title="CentreLeft"></div><div class="anchorCellMini" data-align="CentreCentre" title="CentreCentre"></div><div class="anchorCellMini" data-align="CentreRight" title="CentreRight"></div><div class="anchorCellMini" data-align="BottomLeft" title="BottomLeft"></div><div class="anchorCellMini" data-align="BottomCentre" title="BottomCentre"></div><div class="anchorCellMini" data-align="BottomRight" title="BottomRight"></div></div>
+      <input id="inspAX" class="w100" type="number" step="1" title="Anchor X" placeholder="AnchorX" disabled="">
+      <input id="inspAY" class="w100" type="number" step="1" title="Anchor Y" placeholder="AnchorY" disabled="">
 
-      <span class="miniLabel w100">Nudge</span><input id="nudgeStep" class="w100" type="number" value="10" min="1" step="1"/>
+      <span class="miniLabel w100">Nudge</span><input id="nudgeStep" class="w100" type="number" value="10" min="1" step="1">
       <span class="nudgeBtns">
         <button id="nudgeW" title="Nudge left">←</button>
         <button id="nudgeN" title="Nudge up">↑</button>
@@ -1624,24 +1645,24 @@ body{ position:relative; }
         <button id="nudgeE" title="Nudge right">→</button>
       </span>
 
-      <input id="inspW" class="w100" type="number" step="1" placeholder="Width" title="Width"/>
-      <input id="inspH" class="w100" type="number" step="1" placeholder="Height" title="Height"/>
+      <input id="inspW" class="w100" type="number" step="1" placeholder="Width" title="Width" disabled="">
+      <input id="inspH" class="w100" type="number" step="1" placeholder="Height" title="Height" disabled="">
       <button id="aspectBtn" class="toggle w100">Aspect: OFF</button>
-      <button id="subtreeBtn" class="toggle w200" disabled>Scale children: OFF</button>
-      <button id="groupBtn" class="w100" disabled>Group</button>
-      <button id="cmdPanelToggleBtn" class="toggle" disabled style="display:none">BGRight: OPEN</button>
+      <button id="subtreeBtn" class="toggle w200" disabled="">Scale children: OFF</button>
+      <button id="groupBtn" class="w100" disabled="">Group</button>
+      <button id="cmdPanelToggleBtn" class="toggle" disabled="" style="display:none">BGRight: OPEN</button>
 
-      <input id="inspText" class="advancedOnly w200" type="text" title="Editor-only preview text; not exported" placeholder="Text"/>
-      <select id="inspTextAnchor" class="advancedOnly w200" title="TextAnchor (exported to JSON)">
+      <input id="inspText" class="advancedOnly w200" type="text" title="Editor-only preview text; not exported" placeholder="Text" disabled="" style="display: none;">
+      <select id="inspTextAnchor" class="advancedOnly w200" title="TextAnchor (exported to JSON)" style="display: none;">
         <option value="">Text align</option>
         <option>TopLeft</option><option>TopCentre</option><option>TopRight</option>
         <option>CentreLeft</option><option>CentreCentre</option><option>CentreRight</option>
         <option>BottomLeft</option><option>BottomCentre</option><option>BottomRight</option>
       </select>
-      <input id="inspPt" class="advancedOnly w100" type="number" step="1" placeholder="Text size"/>
-      <span id="inspTextColorLabel" class="miniLabel advancedOnly w100">Color</span><input id="inspTextColor" class="advancedOnly w100" type="color" title="Text color (exported to JSON)" style="padding:2px;height:32px"/>
-      <span id="inspFillColorLabel" class="miniLabel advancedOnly" style="display:none">Fill</span><input id="inspFillColor" class="advancedOnly" type="color" title="TransparentColor fill color (exported to JSON)" style="display:none;width:52px;padding:2px;height:32px"/>
-      <span id="inspFillAlphaLabel" class="miniLabel advancedOnly" style="display:none">A</span><input id="inspFillAlpha" class="advancedOnly" type="number" min="0" max="1" step="0.01" title="TransparentColor alpha (exported to JSON)" style="display:none;width:72px"/>
+      <input id="inspPt" class="advancedOnly w100" type="number" step="1" placeholder="Text size" disabled="" style="display: none;">
+      <span id="inspTextColorLabel" class="miniLabel advancedOnly w100" style="display: none;">Color</span><input id="inspTextColor" class="advancedOnly w100" type="color" title="Text color (exported to JSON)" style="padding: 2px; height: 32px; display: none;">
+      <span id="inspFillColorLabel" class="miniLabel advancedOnly" style="display:none">Fill</span><input id="inspFillColor" class="advancedOnly" type="color" title="TransparentColor fill color (exported to JSON)" style="display:none;width:52px;padding:2px;height:32px" disabled="">
+      <span id="inspFillAlphaLabel" class="miniLabel advancedOnly" style="display:none">A</span><input id="inspFillAlpha" class="advancedOnly" type="number" min="0" max="1" step="0.01" title="TransparentColor alpha (exported to JSON)" style="display:none;width:72px" disabled="">
       
     </div>
   </div>
@@ -1655,13 +1676,13 @@ body{ position:relative; }
   <div id="anchorPop" style="display:none"></div>
   <div id="nudgePop" style="display:none"></div>
   <div id="inspType" style="display:none"></div>
-  <input id="inspX" style="display:none"/>
-  <input id="inspY" style="display:none"/>
+  <input id="inspX" style="display:none" disabled="">
+  <input id="inspY" style="display:none" disabled="">
 </div>
 <div id="statusBar">
   <div id="status" class="statusPill"></div>
-  <div id="log" class="logPill"></div>
-  <div id="versionPill" class="statusPill" title="App version"></div>
+  <div id="log" class="logPill">init OK</div>
+  <div id="versionPill" class="statusPill" title="App version">1.368</div>
 </div>
 
 <div id="app">
@@ -1669,18 +1690,18 @@ body{ position:relative; }
 <details class="noteBox">
   <summary class="noteToggle">Controls</summary>
   <div class="note">
-      Controls.<br/>
-      • Red <b>X</b> = anchor point<br/>
-      • <b>Middle mouse</b> drag pans<br/>
-      • <b>Ctrl/Cmd + click</b> adds or removes items from the selection<br/>
-      • <b>Shift + click</b> in the tree selects a range<br/>
-      • <b>Shift</b> while resizing forces symmetric resize<br/>
-      • <b>Ctrl</b> while dragging a corner removes axis lock for free 2D movement<br/>
-      • <b>Ctrl/Cmd + Z</b> undo, <b>Ctrl/Cmd + Y</b> or <b>Ctrl/Cmd + Shift + Z</b> redo<br/>
-      • <b>Ctrl + mouse wheel</b> zooms on the canvas<br/>
-      • Snaps to widgets + canvas border + center lines<br/>
-      • Parent resize keeps children pinned in absolute space (default)<br/>
-      • <b>Scale children</b> makes parent resize scale subtree<br/>
+      Controls.<br>
+      • Red <b>X</b> = anchor point<br>
+      • <b>Middle mouse</b> drag pans<br>
+      • <b>Ctrl/Cmd + click</b> adds or removes items from the selection<br>
+      • <b>Shift + click</b> in the tree selects a range<br>
+      • <b>Shift</b> while resizing forces symmetric resize<br>
+      • <b>Ctrl</b> while dragging a corner removes axis lock for free 2D movement<br>
+      • <b>Ctrl/Cmd + Z</b> undo, <b>Ctrl/Cmd + Y</b> or <b>Ctrl/Cmd + Shift + Z</b> redo<br>
+      • <b>Ctrl + mouse wheel</b> zooms on the canvas<br>
+      • Snaps to widgets + canvas border + center lines<br>
+      • Parent resize keeps children pinned in absolute space (default)<br>
+      • <b>Scale children</b> makes parent resize scale subtree<br>
       • Aspect lock keeps ratio on edges + corners
     </div>
 </details>
@@ -1689,11 +1710,11 @@ body{ position:relative; }
 </div>
 <div id="splitter" title="Drag to resize browser panel"></div>
 <div id="canvasWrap">
-<div id="world">
-<div id="virtualFrame"><img alt="" id="bgImg"/><div id="virtualLabel">Virtual screen 3840×2160</div></div>
-<div id="centerV"></div>
-<div id="centerH"></div>
-<div id="offsetFrame"></div>
+<div id="world" style="width: 2670px; height: 1380px;">
+<div id="virtualFrame" style="left: 600px; top: 150px; width: 1920px; height: 1080px;"><img alt="" id="bgImg"><div id="virtualLabel">Virtual screen 3840×2160</div></div>
+<div id="centerV" style="left: 1560px; top: 150px; height: 1080px;"></div>
+<div id="centerH" style="left: 600px; top: 690px; width: 1920px;"></div>
+<div id="offsetFrame" style="left: 600px; top: 150px; width: 1920px; height: 1080px; display: none;"></div>
 <div id="marquee"></div>
 <div id="selectionOverlay">
 <div class="handle corner tl" id="hTL"></div>
@@ -1719,52 +1740,39 @@ body{ position:relative; }
 <div id="dbgPanel" aria-label="Debug panel">
   <div id="dbgPanelHeader">
     <div style="font-weight:700;">Debug log</div>
-    <div id="dbgMeta">idle</div>
+    <div id="dbgMeta">10 lines</div>
     <div class="sp"></div>
     <button id="dbgCopyBtn" title="Copy log to clipboard">Copy</button>
     <button id="dbgClearBtn" title="Clear log">Clear</button>
     <button id="dbgCloseBtn" title="Close">✕</button>
   </div>
-  <pre id="debugLog"></pre>
+  <pre id="debugLog">[2026-03-23 08:18:07.529] INFO: Debug logger ready.
+[2026-03-23 08:18:07.559] INFO: [BOOT] Bootstrap ready. If the normal Import is broken, use this.
+[2026-03-23 08:18:07.564] INFO: script start
+[2026-03-23 08:18:07.564] WARN: Missing element: nudgeHint
+[2026-03-23 08:18:07.565] INFO: init: {"fileInput":true,"exportBtn":true,"snapBtn":true,"guidesBtn":true,"snapDistInput":true,"borderOffsetInput":true,"aspectBtn":true,"subtreeBtn":true,"canvasWrap":true,"worldEl":true}
+[2026-03-23 08:18:07.565] INFO: [UI] Required missing: none
+[2026-03-23 08:18:07.565] INFO: [UI] Optional missing: none
+[2026-03-23 08:18:07.567] INFO: Extra UI logging enabled.
+[2026-03-23 08:18:08.697] INFO: [Key combo] Alt+S
+[2026-03-23 08:18:09.797] INFO: [Key combo] Ctrl+S</pre>
 </div>
 
 <div id="errorToast"></div>
 
 <!-- Shared overlay UI -->
-<div id="itemContextMenu" aria-hidden="true" style="display:none; position:fixed; left:0; top:0;">
-  <button id="ctxCopyBtn">Copy items + children</button>
-  <button id="ctxCutBtn">Cut items + children</button>
-  <button id="ctxPasteIntoBtn">Paste into</button>
-  <button id="ctxPasteNextToBtn">Paste next to</button>
-  <button id="ctxGroupBtn">Group</button>
-  <button id="ctxDeleteBtn">Delete</button>
-  <button id="ctxFitChildrenBtn">Fit to children</button>
-  <button id="ctxFitScreenBtn">Fit screen</button>
-  <button id="ctxHideOtherBtn">Hide other</button>
-  <div class="menuSep"></div>
-  <button id="ctxListPngsBtn">List/set possible PNGs</button>
-  <button id="ctxCreateModImageOverrideBtn">Copy linked image</button>
-  <button id="ctxCreateCanvasImageOverrideBtn">Create image canvas</button>
-  <button id="ctxCreateAllCivsImageOverrideBtn">One image for all civs</button>
-  <button id="ctxRemoveImageLinkBtn">Remove image link</button>
-  <button id="ctxRestoreRemovedImageBtn">Restore removed image</button>
-  <button id="ctxReloadModImageBtn">Refresh image</button>
-  <button id="ctxBgRightToggleBtn">Toggle BGRight Open/Closed</button>
-</div>
 
-<div id="pngStatePanel" aria-hidden="true" style="display:none; position:fixed; left:50%; top:80px; transform:translateX(-50%);">
-  <div id="pngStatePanelHeader"><span id="pngStatePanelTitle">Possible PNGs</span><button id="pngStatePanelCloseBtn" type="button">✕</button></div>
-  <div id="pngStatePanelBody"></div>
-</div>
 
-<div id="exportModNameOverlay" aria-hidden="true">
+
+
+<div id="exportModNameOverlay" aria-hidden="true" data-wired="1">
   <div id="exportModNameDialog">
     <h3>Export Mod</h3>
     <p>Enter the mod folder name, then choose where to save it.</p>
-    <input id="exportModNameInput" type="text" placeholder="Mod folder name"/>
+    <input id="exportModNameInput" type="text" placeholder="Mod folder name" data-wired="1">
     <div id="exportModNameActions">
-      <button id="exportModNameCancelBtn" type="button">Cancel</button>
-      <button id="exportModNameOkBtn" type="button">Continue</button>
+      <button id="exportModNameCancelBtn" type="button" data-wired="1">Cancel</button>
+      <button id="exportModNameOkBtn" type="button" data-wired="1">Continue</button>
     </div>
   </div>
 </div>
@@ -2542,10 +2550,15 @@ console.log("script start");
     modFolderHandle = null;
     fillFolderAssetStateFromFileList(modFolderState, files);
     const ok = await rebuildEffectiveGameAssetState();
-    if (!ok){ statusEl.textContent = 'materials.json not found in selected folders'; updateLoadReport(0); return; }
     const count = await loadModUiWorkspace();
     try{ dbg('Mod folder UI JSON count:', count, getModUiJsonPaths().slice(0, 50)); }catch(_){ }
     updateLoadReport(count);
+    if (!ok){
+      statusEl.textContent = count
+        ? `Mod workspace loaded: ${modFolderState.rootLabel} (${count} UI JSON). Load Base Game for full image/material preview.`
+        : 'materials.json not found in selected folders';
+      return;
+    }
     statusEl.textContent = baseFolderState.ready
       ? `Base + mod loaded: ${baseFolderState.rootLabel} + ${modFolderState.rootLabel} (${count} UI JSON)`
       : (count ? `Mod workspace loaded: ${modFolderState.rootLabel} (${count} UI JSON)` : `Mod folder set: ${modFolderState.rootLabel}`);
@@ -10941,5 +10954,6 @@ if (subtreeScaleEnabled && dragState.kidsAbsSnap){
 })();
 </script>
 
-</body>
-</html>
+
+
+</body></html>
