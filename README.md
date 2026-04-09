@@ -1,42 +1,60 @@
-# AoE2DE-UI-editor
-This ui editor lets you import, edit, and export .json files
+# AoE2DE UI Layout Editor
 
-link to the latest version: https://jonasbl3.github.io/AoE2DE-UI-editor/
+A visual editor for **Age of Empires II: Definitive Edition** UI layout files.
 
-This is an unfinished project, so you'll have to figure some things out yourself, but it may help you get going. My app was made to make editing UI elements easier; however, the way the game reads these files is not always clear, so you'll have to do some trial and error. I may or may not continue development. I used ChatGPT 5.2 Thinking to make this. Feel free to edit it and repost it yourself.
+Latest version:  
+https://jonasbl3.github.io/AoE2DE-UI-editor/
 
-The game builds the UI from .json files stored in your games folder. For me, that is here: C:\Program Files (x86)\Steam\steamapps\common\AoE2DE\widgetui
-open the app, import a file, edit and export it to the same folder. Your changes will apply to the game immediately. The game will default to ASIA panels, so play an asian civ like Chinese when testing things out.
+## About
 
+This project was made to make editing AoE2DE UI elements easier than working directly in raw `.json` files.
 
-JSON files that will be most useful are:
+The game UI is built from layout files in the `widgetui` folder, but the way the game reads and behaves with these files is not always obvious. Because of that, this editor helps a lot, but some trial and error is still part of the process.
 
-blankbottompanel
+## Current state
 
-blanktoppanel
+This is still an unfinished project.
 
-GameMsgPanel
+It is already useful, but some behavior is still rough, some parts are experimental, and not everything is fully explained inside this repository. You may need to figure some things out as you go.
 
-mappanel
+I may continue development, or I may leave it as-is.
 
-menupanel
+## Purpose
 
-resourcepanel
+The goal of this editor is to make AoE2DE UI modding and layout editing:
 
-scorepanel
+- more visual
+- faster to iterate on
+- easier to understand
+- less frustrating than editing JSON by hand
 
-technologyprogresspanel
+## Notes
 
-timerpanel
+Some UI behavior is controlled by the game itself, so the editor cannot always preview everything perfectly.
 
-worldtimerpanel
+In practice, this means:
+- some elements behave in odd or engine-specific ways
+- some layouts still need in-game testing
+- graphics and layout do not always update the same way
 
+## Graphics
 
-There are some very odd behaviours. Here are some of them:
-The tooltips dialog box cannot be moved
-the anchorpoint of the backgroundright panel inside the command panel will always move to the top of the commandpanel.
+Besides editing layout files, you may also want to edit the UI graphics.
 
+The game reads many graphics on startup, so image changes usually require restarting the game before they appear correctly.
 
-After editing the ui elements, you may also want to edit the graphics. The game reads the graphics on startup and can't be changed afterward. the graphics are stored here: C:\Program Files (x86)\Steam\steamapps\common\AoE2DE\widgetui\textures\ingame\panels edit the png's inside the vic folder. I use Affinity to draw how I want the UI to look and then export sections of the total UI. I may explain this more later (I'll provide the file if you want to have a look). You may want to create a canvas the same size as the background panel of your ui element, and then draw your panel design. Then overwrite the correct PNG inside the civ folder.
+## Example content
 
-I'll also provide one of my mods as an example (which i wont keep updated here). You can import it into the app and learn a thing or two from it.
+An example mod may also be included here as a reference.
+
+It is not guaranteed to stay updated, but it can still be useful for learning how the app and the game files work.
+
+## Project background
+
+This tool was built with heavy help from ChatGPT during development.
+
+## Final note
+
+This project exists to make AoE2DE UI editing more accessible and practical.
+
+It is not perfect, but it can save a lot of time if you are willing to experiment a bit.
