@@ -33,6 +33,7 @@ The goal of this editor is to make AoE2DE UI modding and layout editing:
 Some UI behavior is controlled by the game itself, so the editor cannot always preview everything perfectly.
 
 In practice, this means:
+
 - some elements behave in odd or engine-specific ways
 - some layouts still need in-game testing
 - graphics and layout do not always update the same way
